@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Minigame Hub</title>
+<style>
+  :root {
+    --bg1: #1e1b4b;
+    --bg2: #0f172a;
+    --accent-x: #f472b6;
+    --accent-o: #38bdf8;
+    --accent-3: #c084fc;
+    --accent-4: #4ade80;
+    --accent-5: #fbbf24;
+    --cell-bg: rgba(255,255,255,0.06);
+    --cell-bg-hover: rgba(255,255,255,0.12);
+    --border: rgba(255,255,255,0.15);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  html[data-theme="ocean"] {
+    --bg1: #082f49;
+    --bg2: #020617;
+    --accent-x: #38bdf8;
+    --accent-o: #22d3ee;
+    --accent-3: #67e8f9;
+    --accent-4: #2dd4bf;
+    --accent-5: #0ea5e9;
+    --cell-bg: rgba(56,189,248,0.08);
+    --cell-bg-hover: rgba(56,189,248,0.16);
+    --border: rgba(148,233,255,0.18);
+    --text: #e0f2fe;
+    --muted: #7dd3fc;
+  }
+  html[data-theme="sunset"] {
+    --bg1: #451a03;
+    --bg2: #1c0a05;
+    --accent-x: #fb7185;
+    --accent-o: #fbbf24;
+    --accent-3: #f97316;
+    --accent-4: #f472b6;
+    --accent-5: #facc15;
+    --cell-bg: rgba(251,191,36,0.08);
+    --cell-bg-hover: rgba(251,191,36,0.16);
+    --border: rgba(251,146,60,0.25);
+    --text: #fff7ed;
+    --muted: #fdba74;
+  }
+  html[data-theme="forest"] {
+    --bg1: #052e16;
+    --bg2: #041008;
+    --accent-x: #4ade80;
+    --accent-o: #a3e635;
+    --accent-3: #34d399;
+    --accent-4: #86efac;
+    --accent-5: #facc15;
+    --cell-bg: rgba(74,222,128,0.08);
+    --cell-bg-hover: rgba(74,222,128,0.16);
+    --border: rgba(134,239,172,0.2);
+    --text: #ecfdf5;
+    --muted: #86efac;
+  }
+  html[data-theme="mono"] {
+    --bg1: #27272a;
+    --bg2: #09090b;
+    --accent-x: #e4e4e7;
+    --accent-o: #a1a1aa;
+    --accent-3: #d4d4d8;
+    --accent-4: #f4f4f5;
+    --accent-5: #a1a1aa;
+    --cell-bg: rgba(255,255,255,0.06);
+    --cell-bg-hover: rgba(255,255,255,0.12);
+    --border: rgba(255,255,255,0.15);
+    --text: #fafafa;
+    --muted: #a1a1aa;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: radial-gradient(circle at 30% 20%, var(--bg1), var(--bg2));
+    color: var(--text);
+  }
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px 0 40px;
+  }
+  .app { width: 100%; max-width: 440px; padding: 0 20px; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  h1 { font-size: 2rem; margin: 0 0 4px; letter-spacing: 1px; text-align: center; }
+  .subtitle { color: var(--muted); margin-bottom: 20px; font-size: 0.95rem; min-height: 1.4em; text-align: center; }
+
+  /* ---------- Menu ---------- */
+  .hub-title { font-size: 2.1rem; margin: 6px 0 2px; text-align: center; letter-spacing: 0.5px; }
+  .hub-title span { background: linear-gradient(135deg, var(--accent-x), var(--accent-o)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hub-subtitle { text-align: center; color: var(--muted); margin-bottom: 26px; font-size: 0.92rem; }
+  .game-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .game-card {
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, border-color 0.2s;
+  }
+  .game-card:hover { background: var(--cell-bg-hover); }
+  .game-card:active { transform: scale(0.97); }
+  .game-card .icon { font-size: 2.2rem; display: block; margin-bottom: 8px; }
+  .game-card .name { font-weight: 600; font-size: 1rem; }
+  .game-card .tag { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+  .game-card.c-ttt { border-color: rgba(244,114,182,0.35); }
+  .game-card.c-snake { border-color: rgba(74,222,128,0.35); }
+  .game-card.c-tetris { border-color: rgba(192,132,252,0.35); }
+  .game-card.c-flappy { border-color: rgba(56,189,248,0.35); }
+
+  .footer-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .discord-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    padding: 12px 12px;
+    border-radius: 14px;
+    background: #5865F2;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: filter 0.2s, transform 0.1s;
+  }
+  .discord-btn:hover { filter: brightness(1.1); }
+  .discord-btn:active { transform: scale(0.97); }
+
+  .update-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    padding: 12px 12px;
+    border-radius: 14px;
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .update-btn:hover { background: var(--cell-bg-hover); }
+  .update-btn:active { transform: scale(0.97); }
+
+  /* ---------- Modal Mises à jour ---------- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    max-width: 380px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .modal-header h2 { font-size: 1.15rem; margin: 0; }
+  .modal-close {
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .modal-close:hover { background: var(--cell-bg-hover); }
+  .changelog-entry {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .changelog-entry:last-child { border-bottom: none; }
+  .changelog-date {
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+  }
+  .changelog-title {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin-bottom: 4px;
+  }
+  .changelog-list {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .theme-toggle-btn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s, transform 0.15s;
+  }
+  .theme-toggle-btn:hover { background: var(--cell-bg-hover); }
+  .theme-toggle-btn:active { transform: scale(0.92) rotate(20deg); }
+
+  /* ---------- Shared game screen chrome ---------- */
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .back-btn {
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .back-btn:hover { background: var(--cell-bg-hover); }
+  .game-title { font-size: 1.3rem; font-weight: 700; text-align: center; flex: 1; }
+  .spacer-btn { width: 62px; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .controls button {
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+  }
+  .controls button:hover { background: var(--cell-bg-hover); }
+
+  .score-row {
+    display: flex;
+    justify-content: space-around;
+    margin: 16px 0 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .score-row span.value {
+    display: block;
+    font-size: 1.3rem;
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  canvas { display: block; margin: 0 auto; border-radius: 16px; }
+
+  /* on-screen d-pad for snake/tetris */
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows: repeat(2, 48px);
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .dpad button {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--cell-bg);
+    color: var(--text);
+    font-size: 1.3rem;
+    cursor: pointer;
+  }
+  .dpad button:active { background: var(--cell-bg-hover); }
+
+  .overlay-msg {
+    text-align: center;
+    font-size: 1rem;
+    margin-top: 10px;
+    min-height: 1.4em;
+    color: var(--muted);
+  }
+
+  /* ---------- Morpion ---------- */
+  .modes { display: flex; gap: 10px; margin-bottom: 20px; }
+  .modes button {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--cell-bg);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modes button.active {
+    background: linear-gradient(135deg, var(--accent-x), var(--accent-o));
+    border-color: transparent;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .modes button:hover:not(.active) { background: var(--cell-bg-hover); }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 0 auto 20px;
+    max-width: 320px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    user-select: none;
+  }
+  .cell:hover:not(.filled) { background: var(--cell-bg-hover); }
+  .cell:active:not(.filled) { transform: scale(0.96); }
+  .cell.x { color: var(--accent-x); }
+  .cell.o { color: var(--accent-o); }
+  .cell.win {
+    background: linear-gradient(135deg, rgba(244,114,182,0.25), rgba(56,189,248,0.25));
+    border-color: rgba(255,255,255,0.4);
+  }
+  .cell.pop { animation: pop 0.2s ease; }
+  @keyframes pop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .learn-box {
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: none;
+  }
+  .learn-box.visible { display: block; }
+  .learn-box b { color: var(--text); }
+
+</style>
+</head>
+<body>
+<button class="theme-toggle-btn" id="theme-toggle" title="Changer de thème">🎨</button>
+<div class="app">
+
+  <!-- ===================== MENU ===================== -->
+  <div class="screen active" id="screen-menu">
+    <h1 class="hub-title">🎮 <span>MINIGAME HUB</span></h1>
+    <div class="hub-subtitle">Choisis un jeu pour commencer</div>
+    <div class="game-grid">
+      <div class="game-card c-ttt" data-target="screen-morpion">
+        <span class="icon">❌⭕</span>
+        <div class="name">Morpion</div>
+        <div class="tag">2 joueurs / IA</div>
+      </div>
+      <div class="game-card c-snake" data-target="screen-snake">
+        <span class="icon">🐍</span>
+        <div class="name">Snake</div>
+        <div class="tag">Arcade</div>
+      </div>
+      <div class="game-card c-tetris" data-target="screen-tetris">
+        <span class="icon">🧱</span>
+        <div class="name">Tetris</div>
+        <div class="tag">Puzzle</div>
+      </div>
+      <div class="game-card c-flappy" data-target="screen-flappy">
+        <span class="icon">🐦</span>
+        <div class="name">Flappy Bird</div>
+        <div class="tag">Arcade</div>
+      </div>
+    </div>
+    <div class="footer-btns">
+      <a class="discord-btn" href="https://discord.gg/vRw2ff4Bp" target="_blank" rel="noopener noreferrer">💬 Discord</a>
+      <button class="update-btn" id="update-open-btn">🆕 Mises à jour</button>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL MISES A JOUR ===================== -->
+  <div class="modal-overlay" id="update-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🆕 Mises à jour</h2>
+        <button class="modal-close" id="update-close-btn">✕</button>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Sélecteur de thèmes</div>
+        <ul class="changelog-list">
+          <li>Nouveau bouton 🎨 en bas à droite, visible sur tous les écrans</li>
+          <li>5 thèmes disponibles : Défaut, Océan, Coucher de soleil, Forêt, Monochrome</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Bouton Discord</div>
+        <ul class="changelog-list">
+          <li>Ajout d'un bouton menant vers le serveur Discord</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Suppression du mode 2048</div>
+        <ul class="changelog-list">
+          <li>Le mode 2048 a été entièrement retiré du hub</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Correction Snake</div>
+        <ul class="changelog-list">
+          <li>Correction d'un bug qui permettait de continuer à jouer après être mort en rappuyant sur une flèche</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MORPION ===================== -->
+  <div class="screen" id="screen-morpion">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">Morpion</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle" id="ttt-status">À toi de jouer, X !</div>
+
+    <div class="modes">
+      <button id="ttt-mode-pvp" class="active">👥 2 joueurs</button>
+      <button id="ttt-mode-ia">🤖 Contre l'IA</button>
+    </div>
+
+    <div class="board" id="ttt-board"></div>
+
+    <div class="controls">
+      <button id="ttt-restart">🔄 Nouvelle partie</button>
+      <button id="ttt-reset-score">🗑️ Scores</button>
+    </div>
+
+    <div class="score-row">
+      <div>X <span class="value" id="ttt-score-x">0</span></div>
+      <div>Nuls <span class="value" id="ttt-score-n">0</span></div>
+      <div>O <span class="value" id="ttt-score-o">0</span></div>
+    </div>
+
+    <div class="learn-box" id="ttt-learn-box">
+      🧠 Parties apprises : <b id="ttt-parties-apprises">0</b> —
+      exploration : <b id="ttt-taux-exploration">–</b>
+    </div>
+  </div>
+
+  <!-- ===================== SNAKE ===================== -->
+  <div class="screen" id="screen-snake">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">🐍 Snake</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle" id="snake-status">Appuie sur une flèche pour commencer</div>
+    <canvas id="snake-canvas" width="300" height="300" style="background:rgba(255,255,255,0.04); border:1px solid var(--border);"></canvas>
+    <div class="score-row">
+      <div>Score <span class="value" id="snake-score">0</span></div>
+      <div>Record <span class="value" id="snake-best">0</span></div>
+    </div>
+    <div class="dpad">
+      <div></div><button data-dir="up">▲</button><div></div>
+      <button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button>
+    </div>
+    <div class="controls">
+      <button id="snake-restart">🔄 Nouvelle partie</button>
+    </div>
+  </div>
+
+  <!-- ===================== TETRIS ===================== -->
+  <div class="screen" id="screen-tetris">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">🧱 Tetris</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle" id="tetris-status">Empile les blocs et fais des lignes</div>
+    <div style="display:flex; gap:14px; justify-content:center; align-items:flex-start;">
+      <canvas id="tetris-canvas" width="200" height="400" style="background:rgba(255,255,255,0.04); border:1px solid var(--border);"></canvas>
+      <div style="text-align:center;">
+        <div style="color:var(--muted); font-size:0.75rem; margin-bottom:4px;">Suivant</div>
+        <canvas id="tetris-next" width="80" height="80" style="background:rgba(255,255,255,0.04); border:1px solid var(--border);"></canvas>
+      </div>
+    </div>
+    <div class="score-row">
+      <div>Score <span class="value" id="tetris-score">0</span></div>
+      <div>Niveau <span class="value" id="tetris-level">1</span></div>
+      <div>Lignes <span class="value" id="tetris-lines">0</span></div>
+    </div>
+    <div class="dpad">
+      <div></div><button data-t="rotate">⟳</button><div></div>
+      <button data-t="left">◀</button><button data-t="down">▼</button><button data-t="right">▶</button>
+    </div>
+    <div class="controls">
+      <button id="tetris-drop">⬇️ Chute</button>
+      <button id="tetris-restart">🔄 Nouvelle partie</button>
+    </div>
+  </div>
+
+  <!-- ===================== FLAPPY BIRD ===================== -->
+  <div class="screen" id="screen-flappy">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">🐦 Flappy Bird</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle" id="flappy-status">Clique ou appuie sur Espace pour voler</div>
+    <canvas id="flappy-canvas" width="300" height="400" style="background:linear-gradient(to bottom, #38bdf8 0%, #0f172a 100%); border:1px solid var(--border);"></canvas>
+    <div class="score-row">
+      <div>Score <span class="value" id="flappy-score">0</span></div>
+      <div>Record <span class="value" id="flappy-best">0</span></div>
+    </div>
+    <div class="controls">
+      <button id="flappy-restart">🔄 Nouvelle partie</button>
+    </div>
+  </div>
+
+
+</div>
+<script>
+/* ===================== Navigation ===================== */
+let currentScreen = 'menu';
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const prev = currentScreen;
+  currentScreen = id;
+  window.HUB && window.HUB.onLeave && window.HUB.onLeave(prev);
+  window.HUB && window.HUB.onEnter && window.HUB.onEnter(id);
+}
+
+document.querySelectorAll('.game-card').forEach(card => {
+  card.addEventListener('click', () => showScreen(card.dataset.target));
+});
+
+window.HUB = { onEnter: null, onLeave: null };
+</script>
+
+<script>
+/* ===================== MORPION ===================== */
+(function() {
+  const LIGNES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let grille = Array(9).fill(null);
+  let joueur = "X";
+  let contreIA = false;
+  let fini = false;
+  let scores = { X: 0, O: 0, N: 0 };
+
+  const boardEl = document.getElementById("ttt-board");
+  const statusEl = document.getElementById("ttt-status");
+  const learnBox = document.getElementById("ttt-learn-box");
+
+  function creerPlateau() {
+    boardEl.innerHTML = "";
+    grille.forEach((_, i) => {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.index = i;
+      cell.addEventListener("click", () => jouer(i));
+      boardEl.appendChild(cell);
+    });
+  }
+
+  function majAffichage(ligneGagnante = null) {
+    document.querySelectorAll("#ttt-board .cell").forEach((cell, i) => {
+      const val = grille[i];
+      cell.textContent = val || "";
+      cell.classList.toggle("x", val === "X");
+      cell.classList.toggle("o", val === "O");
+      cell.classList.toggle("filled", !!val);
+      cell.classList.toggle("win", ligneGagnante ? ligneGagnante.includes(i) : false);
+    });
+  }
+
+  function gagnant(g, j) {
+    return LIGNES.find(([a,b,c]) => g[a] === j && g[b] === j && g[c] === j) || null;
+  }
+
+  function pleine(g) { return g.every(c => c !== null); }
+
+  function jouer(i) {
+    if (fini || grille[i] !== null) return;
+    if (contreIA && joueur === "O") return;
+    placer(i, joueur);
+  }
+
+  function placer(i, j) {
+    grille[i] = j;
+    const cell = boardEl.children[i];
+    cell.classList.add("pop");
+
+    if (contreIA && j === "O") {
+      aiTrace.push(cleCanonique(grille));
+    }
+
+    const ligne = gagnant(grille, j);
+    if (ligne) {
+      fini = true;
+      majAffichage(ligne);
+      if (contreIA) {
+        statusEl.textContent = j === "X" ? "🎉 Tu as gagné !" : "🤖 L'IA a gagné !";
+        apprendre(j === "O" ? 1 : 0);
+      } else {
+        statusEl.textContent = `🎉 Le joueur ${j} a gagné !`;
+      }
+      scores[j]++;
+      majScores();
+      return;
+    }
+
+    if (pleine(grille)) {
+      fini = true;
+      majAffichage();
+      statusEl.textContent = "🤝 Match nul !";
+      if (contreIA) apprendre(0.5);
+      scores.N++;
+      majScores();
+      return;
+    }
+
+    joueur = joueur === "X" ? "O" : "X";
+    majAffichage();
+    majStatutTour();
+
+    if (contreIA && joueur === "O" && !fini) {
+      statusEl.textContent = "🤖 L'IA réfléchit...";
+      setTimeout(() => placer(coupIA(), "O"), 400);
+    }
+  }
+
+  function majStatutTour() {
+    if (fini) return;
+    if (contreIA) {
+      statusEl.textContent = joueur === "X" ? "À toi de jouer ! (X)" : "🤖 L'IA joue...";
+    } else {
+      statusEl.textContent = `Tour du joueur ${joueur}`;
+    }
+  }
+
+  function rotation(g) { return [g[6],g[3],g[0],g[7],g[4],g[1],g[8],g[5],g[2]]; }
+  function reflet(g) { return [g[2],g[1],g[0],g[5],g[4],g[3],g[8],g[7],g[6]]; }
+  function cleTableau(g) { return g.map(v => v || "-").join(""); }
+  function cleCanonique(g) {
+    let variantes = [];
+    let r = g;
+    for (let i = 0; i < 4; i++) {
+      variantes.push(cleTableau(r));
+      variantes.push(cleTableau(reflet(r)));
+      r = rotation(r);
+    }
+    variantes.sort();
+    return variantes[0];
+  }
+
+  let valeurs = {};
+  let aiTrace = [];
+  let partiesApprises = 0;
+  const ALPHA = 0.3;
+
+  function apprendre(recompense) {
+    let cible = recompense;
+    for (let i = aiTrace.length - 1; i >= 0; i--) {
+      const k = aiTrace[i];
+      const v = valeurs[k] ?? 0.5;
+      const nv = v + ALPHA * (cible - v);
+      valeurs[k] = nv;
+      cible = nv;
+    }
+    partiesApprises++;
+    aiTrace = [];
+    majPanneauApprentissage();
+  }
+
+  function tauxExploration() { return Math.max(0.05, 0.35 - partiesApprises * 0.015); }
+
+  function coupIA() {
+    for (let i = 0; i < 9; i++) {
+      if (grille[i] === null) {
+        grille[i] = "O";
+        const win = gagnant(grille, "O");
+        grille[i] = null;
+        if (win) return i;
+      }
+    }
+    for (let i = 0; i < 9; i++) {
+      if (grille[i] === null) {
+        grille[i] = "X";
+        const win = gagnant(grille, "X");
+        grille[i] = null;
+        if (win) return i;
+      }
+    }
+
+    const libres = grille.map((v,i) => v === null ? i : null).filter(v => v !== null);
+
+    if (Math.random() < tauxExploration()) {
+      return libres[Math.floor(Math.random() * libres.length)];
+    }
+
+    let meilleur = null;
+    let meilleureValeur = -Infinity;
+    for (const i of libres) {
+      grille[i] = "O";
+      const k = cleCanonique(grille);
+      grille[i] = null;
+
+      let v = valeurs[k] ?? 0.5;
+      if (i === 4) v += 0.02;
+      else if ([0,2,6,8].includes(i)) v += 0.01;
+      v += Math.random() * 0.001;
+
+      if (v > meilleureValeur) {
+        meilleureValeur = v;
+        meilleur = i;
+      }
+    }
+    return meilleur;
+  }
+
+  function majPanneauApprentissage() {
+    document.getElementById("ttt-parties-apprises").textContent = partiesApprises;
+    document.getElementById("ttt-taux-exploration").textContent =
+      Math.round(tauxExploration() * 100) + "%";
+  }
+
+  function majScores() {
+    document.getElementById("ttt-score-x").textContent = scores.X;
+    document.getElementById("ttt-score-o").textContent = scores.O;
+    document.getElementById("ttt-score-n").textContent = scores.N;
+  }
+
+  function nouvellePartie() {
+    grille = Array(9).fill(null);
+    joueur = "X";
+    fini = false;
+    aiTrace = [];
+    creerPlateau();
+    majAffichage();
+    majStatutTour();
+  }
+
+  document.getElementById("ttt-restart").addEventListener("click", nouvellePartie);
+  document.getElementById("ttt-reset-score").addEventListener("click", () => {
+    scores = { X: 0, O: 0, N: 0 };
+    majScores();
+  });
+  document.getElementById("ttt-mode-pvp").addEventListener("click", () => {
+    contreIA = false;
+    document.getElementById("ttt-mode-pvp").classList.add("active");
+    document.getElementById("ttt-mode-ia").classList.remove("active");
+    learnBox.classList.remove("visible");
+    nouvellePartie();
+  });
+  document.getElementById("ttt-mode-ia").addEventListener("click", () => {
+    contreIA = true;
+    document.getElementById("ttt-mode-ia").classList.add("active");
+    document.getElementById("ttt-mode-pvp").classList.remove("active");
+    learnBox.classList.add("visible");
+    majPanneauApprentissage();
+    nouvellePartie();
+  });
+
+  creerPlateau();
+  majAffichage();
+  majStatutTour();
+})();
+</script>
+
+<script>
+/* ===================== SNAKE ===================== */
+const SNAKE = (function() {
+  const canvas = document.getElementById("snake-canvas");
+  const ctx = canvas.getContext("2d");
+  const COLS = 15, ROWS = 15, CELL = 20;
+  const statusEl = document.getElementById("snake-status");
+  const scoreEl = document.getElementById("snake-score");
+  const bestEl = document.getElementById("snake-best");
+
+  let snake, dir, nextDir, food, score, best = 0, running, gameOverFlag, loopId, speed;
+
+  function reset() {
+    snake = [{x:7,y:7},{x:6,y:7},{x:5,y:7}];
+    dir = "right";
+    nextDir = "right";
+    score = 0;
+    speed = 150;
+    running = false;
+    gameOverFlag = false;
+    placeFood();
+    scoreEl.textContent = score;
+    statusEl.textContent = "Appuie sur une flèche pour commencer";
+    draw();
+    if (loopId) clearInterval(loopId);
+  }
+
+  function placeFood() {
+    let ok = false;
+    while (!ok) {
+      food = { x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS) };
+      ok = !snake.some(s => s.x === food.x && s.y === food.y);
+    }
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    statusEl.textContent = "";
+    if (loopId) clearInterval(loopId);
+    loopId = setInterval(tick, speed);
+  }
+
+  function tick() {
+    dir = nextDir;
+    const head = { ...snake[0] };
+    if (dir === "up") head.y--;
+    else if (dir === "down") head.y++;
+    else if (dir === "left") head.x--;
+    else if (dir === "right") head.x++;
+
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
+        snake.some(s => s.x === head.x && s.y === head.y)) {
+      gameOver();
+      return;
+    }
+
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      scoreEl.textContent = score;
+      if (score > best) { best = score; bestEl.textContent = best; }
+      placeFood();
+      if (score % 5 === 0 && speed > 70) {
+        speed -= 10;
+        clearInterval(loopId);
+        loopId = setInterval(tick, speed);
+      }
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function gameOver() {
+    running = false;
+    gameOverFlag = true;
+    clearInterval(loopId);
+    statusEl.textContent = "💀 Game Over — appuie sur Nouvelle partie";
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "rgba(74,222,128,0.9)";
+    snake.forEach((s,i) => {
+      ctx.fillStyle = i === 0 ? "#4ade80" : "rgba(74,222,128,0.6)";
+      roundRect(ctx, s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2, 5);
+      ctx.fill();
+    });
+    ctx.fillStyle = "#f472b6";
+    ctx.beginPath();
+    ctx.arc(food.x*CELL+CELL/2, food.y*CELL+CELL/2, CELL/2-3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  const OPPOSITE = { up:"down", down:"up", left:"right", right:"left" };
+  function setDir(d) {
+    if (gameOverFlag) return;
+    if (OPPOSITE[d] === dir) return;
+    nextDir = d;
+    start();
+  }
+
+  document.querySelectorAll('#screen-snake .dpad button').forEach(btn => {
+    btn.addEventListener('click', () => setDir(btn.dataset.dir));
+  });
+  document.getElementById("snake-restart").addEventListener("click", reset);
+
+  // swipe controls
+  let touchStartX = 0, touchStartY = 0;
+  canvas.addEventListener('touchstart', e => {
+    const t = e.changedTouches[0];
+    touchStartX = t.clientX; touchStartY = t.clientY;
+  }, { passive: true });
+  canvas.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      setDir(dx > 0 ? "right" : "left");
+    } else {
+      setDir(dy > 0 ? "down" : "up");
+    }
+  }, { passive: true });
+
+  reset();
+
+  return {
+    handleKey(key) {
+      if (key === "ArrowUp" || key === "w") setDir("up");
+      else if (key === "ArrowDown" || key === "s") setDir("down");
+      else if (key === "ArrowLeft" || key === "a") setDir("left");
+      else if (key === "ArrowRight" || key === "d") setDir("right");
+    },
+    pause() { if (loopId) clearInterval(loopId); running = false; },
+    resume() { /* user restarts via arrow key or button */ },
+    reset
+  };
+})();
+</script>
+
+<script>
+/* ===================== TETRIS ===================== */
+const TETRIS = (function() {
+  const canvas = document.getElementById("tetris-canvas");
+  const ctx = canvas.getContext("2d");
+  const nextCanvas = document.getElementById("tetris-next");
+  const nextCtx = nextCanvas.getContext("2d");
+  const statusEl = document.getElementById("tetris-status");
+  const scoreEl = document.getElementById("tetris-score");
+  const levelEl = document.getElementById("tetris-level");
+  const linesEl = document.getElementById("tetris-lines");
+
+  const COLS = 10, ROWS = 20, CELL = 20;
+
+  const SHAPES = {
+    I: ["....","XXXX","....","...."],
+    J: ["X...","XXX.","....","...."],
+    L: ["..X.","XXX.","....","...."],
+    O: [".XX.",".XX.","....","...."],
+    S: [".XX.","XX..","....","...."],
+    T: [".X..","XXX.","....","...."],
+    Z: ["XX..",".XX.","....","...."]
+  };
+  const COLORS = { I:"#38bdf8", J:"#818cf8", L:"#fb923c", O:"#fbbf24", S:"#4ade80", T:"#c084fc", Z:"#f472b6" };
+  const TYPES = Object.keys(SHAPES);
+
+  function toMatrix(strs) { return strs.map(row => row.split("")); }
+  function rotateMatrix(m) {
+    const n = m.length;
+    const res = Array.from({length:n}, () => Array(n).fill("."));
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        res[x][n-1-y] = m[y][x];
+      }
+    }
+    return res;
+  }
+
+  let board, current, next, score, level, lines, running, gameOverFlag, loopId, speed;
+
+  function emptyBoard() {
+    return Array.from({length: ROWS}, () => Array(COLS).fill(null));
+  }
+
+  function randomPiece() {
+    const type = TYPES[Math.floor(Math.random()*TYPES.length)];
+    return { type, matrix: toMatrix(SHAPES[type]), x: 3, y: -1, color: COLORS[type] };
+  }
+
+  function reset() {
+    board = emptyBoard();
+    current = randomPiece();
+    next = randomPiece();
+    score = 0; level = 1; lines = 0;
+    speed = 700;
+    running = true;
+    gameOverFlag = false;
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    linesEl.textContent = lines;
+    statusEl.textContent = "Empile les blocs et fais des lignes";
+    if (loopId) clearInterval(loopId);
+    loopId = null;
+    draw();
+    drawNext();
+  }
+
+  function collides(matrix, px, py) {
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = 0; x < matrix[y].length; x++) {
+        if (matrix[y][x] !== "X") continue;
+        const bx = px + x, by = py + y;
+        if (bx < 0 || bx >= COLS || by >= ROWS) return true;
+        if (by >= 0 && board[by][bx]) return true;
+      }
+    }
+    return false;
+  }
+
+  function lock() {
+    for (let y = 0; y < current.matrix.length; y++) {
+      for (let x = 0; x < current.matrix[y].length; x++) {
+        if (current.matrix[y][x] !== "X") continue;
+        const bx = current.x + x, by = current.y + y;
+        if (by < 0) { triggerGameOver(); return; }
+        board[by][bx] = current.color;
+      }
+    }
+    clearLines();
+    current = next;
+    next = randomPiece();
+    drawNext();
+    if (collides(current.matrix, current.x, current.y)) {
+      triggerGameOver();
+    }
+  }
+
+  function clearLines() {
+    let cleared = 0;
+    for (let y = ROWS - 1; y >= 0; y--) {
+      if (board[y].every(c => c)) {
+        board.splice(y, 1);
+        board.unshift(Array(COLS).fill(null));
+        cleared++;
+        y++;
+      }
+    }
+    if (cleared > 0) {
+      const table = [0, 40, 100, 300, 1200];
+      score += table[cleared] * level;
+      lines += cleared;
+      scoreEl.textContent = score;
+      linesEl.textContent = lines;
+      const newLevel = Math.floor(lines / 10) + 1;
+      if (newLevel !== level) {
+        level = newLevel;
+        levelEl.textContent = level;
+        speed = Math.max(120, 700 - (level-1) * 60);
+        clearInterval(loopId);
+        loopId = setInterval(drop, speed);
+      }
+    }
+  }
+
+  function triggerGameOver() {
+    running = false;
+    gameOverFlag = true;
+    clearInterval(loopId);
+    statusEl.textContent = "💀 Game Over — appuie sur Nouvelle partie";
+    draw();
+  }
+
+  function drop() {
+    if (!running) return;
+    if (!collides(current.matrix, current.x, current.y + 1)) {
+      current.y++;
+    } else {
+      lock();
+    }
+    draw();
+  }
+
+  function move(dx) {
+    if (!running) return;
+    if (!collides(current.matrix, current.x + dx, current.y)) {
+      current.x += dx;
+      draw();
+    }
+  }
+
+  function softDrop() {
+    if (!running) return;
+    drop();
+  }
+
+  function hardDrop() {
+    if (!running) return;
+    while (!collides(current.matrix, current.x, current.y + 1)) {
+      current.y++;
+    }
+    lock();
+    draw();
+  }
+
+  function rotate() {
+    if (!running) return;
+    const rotated = rotateMatrix(current.matrix);
+    const kicks = [0, -1, 1, -2, 2];
+    for (const k of kicks) {
+      if (!collides(rotated, current.x + k, current.y)) {
+        current.matrix = rotated;
+        current.x += k;
+        draw();
+        return;
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // locked board
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (board[y][x]) drawCell(ctx, x, y, board[y][x]);
+      }
+    }
+    // current piece
+    if (running) {
+      for (let y = 0; y < current.matrix.length; y++) {
+        for (let x = 0; x < current.matrix[y].length; x++) {
+          if (current.matrix[y][x] === "X") {
+            const by = current.y + y;
+            if (by >= 0) drawCell(ctx, current.x + x, by, current.color);
+          }
+        }
+      }
+    }
+    // grid lines
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    for (let x = 0; x <= COLS; x++) {
+      ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,ROWS*CELL); ctx.stroke();
+    }
+    for (let y = 0; y <= ROWS; y++) {
+      ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(COLS*CELL,y*CELL); ctx.stroke();
+    }
+  }
+
+  function drawCell(c, x, y, color) {
+    c.fillStyle = color;
+    c.fillRect(x*CELL+1, y*CELL+1, CELL-2, CELL-2);
+  }
+
+  function drawNext() {
+    nextCtx.clearRect(0,0,nextCanvas.width,nextCanvas.height);
+    const size = 18;
+    const offsetX = (nextCanvas.width - 4*size)/2;
+    const offsetY = (nextCanvas.height - 4*size)/2;
+    for (let y = 0; y < next.matrix.length; y++) {
+      for (let x = 0; x < next.matrix[y].length; x++) {
+        if (next.matrix[y][x] === "X") {
+          nextCtx.fillStyle = next.color;
+          nextCtx.fillRect(offsetX + x*size+1, offsetY + y*size+1, size-2, size-2);
+        }
+      }
+    }
+  }
+
+  document.querySelectorAll('#screen-tetris .dpad button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.t;
+      if (t === "left") move(-1);
+      else if (t === "right") move(1);
+      else if (t === "down") softDrop();
+      else if (t === "rotate") rotate();
+    });
+  });
+  document.getElementById("tetris-drop").addEventListener("click", hardDrop);
+  document.getElementById("tetris-restart").addEventListener("click", reset);
+
+  reset();
+
+  return {
+    handleKey(key) {
+      if (key === "ArrowLeft") move(-1);
+      else if (key === "ArrowRight") move(1);
+      else if (key === "ArrowDown") softDrop();
+      else if (key === "ArrowUp") rotate();
+      else if (key === " ") hardDrop();
+    },
+    pause() { if (loopId) clearInterval(loopId); loopId = null; },
+    resume() { if (running && !loopId) loopId = setInterval(drop, speed); },
+    reset
+  };
+})();
+</script>
+
+<script>
+/* ===================== FLAPPY BIRD ===================== */
+const FLAPPY = (function() {
+  const canvas = document.getElementById("flappy-canvas");
+  const ctx = canvas.getContext("2d");
+  const statusEl = document.getElementById("flappy-status");
+  const scoreEl = document.getElementById("flappy-score");
+  const bestEl = document.getElementById("flappy-best");
+
+  const W = canvas.width, H = canvas.height;
+  const GRAVITY = 0.35, FLAP_V = -6.2, PIPE_W = 46, GAP = 130, PIPE_SPEED = 2.4;
+
+  let bird, pipes, score, best = 0, running, started, gameOverFlag, rafId, frame;
+
+  function reset() {
+    bird = { x: 60, y: H/2, vy: 0, r: 12 };
+    pipes = [];
+    score = 0;
+    frame = 0;
+    running = false;
+    started = false;
+    gameOverFlag = false;
+    scoreEl.textContent = score;
+    statusEl.textContent = "Clique ou appuie sur Espace pour voler";
+    if (rafId) cancelAnimationFrame(rafId);
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function flap() {
+    if (gameOverFlag) { reset(); return; }
+    if (!started) { started = true; running = true; statusEl.textContent = ""; }
+    bird.vy = FLAP_V;
+  }
+
+  function spawnPipe() {
+    const margin = 40;
+    const gapY = margin + Math.random() * (H - GAP - margin*2);
+    pipes.push({ x: W, gapY, passed: false });
+  }
+
+  function loop() {
+    frame++;
+    if (running) {
+      bird.vy += GRAVITY;
+      bird.y += bird.vy;
+
+      if (frame % 90 === 0) spawnPipe();
+
+      pipes.forEach(p => p.x -= PIPE_SPEED);
+      while (pipes.length && pipes[0].x < -PIPE_W) pipes.shift();
+
+      pipes.forEach(p => {
+        if (!p.passed && p.x + PIPE_W < bird.x) {
+          p.passed = true;
+          score++;
+          scoreEl.textContent = score;
+          if (score > best) { best = score; bestEl.textContent = best; }
+        }
+      });
+
+      // collisions
+      if (bird.y - bird.r < 0 || bird.y + bird.r > H) {
+        endGame();
+      }
+      for (const p of pipes) {
+        const withinX = bird.x + bird.r > p.x && bird.x - bird.r < p.x + PIPE_W;
+        const withinGap = bird.y - bird.r > p.gapY && bird.y + bird.r < p.gapY + GAP;
+        if (withinX && !withinGap) { endGame(); break; }
+      }
+    }
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function endGame() {
+    running = false;
+    gameOverFlag = true;
+    statusEl.textContent = "💀 Game Over — clique pour rejouer";
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    // pipes
+    ctx.fillStyle = "#4ade80";
+    pipes.forEach(p => {
+      ctx.fillRect(p.x, 0, PIPE_W, p.gapY);
+      ctx.fillRect(p.x, p.gapY + GAP, PIPE_W, H - (p.gapY+GAP));
+    });
+    // bird
+    ctx.fillStyle = "#fbbf24";
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(bird.x + 5, bird.y - 3, 2.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  canvas.addEventListener('click', flap);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); }, { passive: false });
+  document.getElementById("flappy-restart").addEventListener("click", reset);
+
+  reset();
+
+  return {
+    handleKey(key) {
+      if (key === " " || key === "ArrowUp") flap();
+    },
+    pause() { if (rafId) cancelAnimationFrame(rafId); rafId = null; },
+    resume() { if (!rafId) rafId = requestAnimationFrame(loop); },
+    reset
+  };
+})();
+</script>
+<script>
+/* ===================== Global key + navigation wiring ===================== */
+(function() {
+  const GAME_MAP = {
+    'screen-snake': SNAKE,
+    'screen-tetris': TETRIS,
+    'screen-flappy': FLAPPY
+  };
+
+  document.querySelectorAll('[data-back]').forEach(btn => {
+    btn.addEventListener('click', () => showScreen('screen-menu'));
+  });
+
+  window.HUB.onLeave = function(prevId) {
+    const g = GAME_MAP[prevId];
+    if (g && g.pause) g.pause();
+  };
+  window.HUB.onEnter = function(id) {
+    const g = GAME_MAP[id];
+    if (g && g.resume) g.resume();
+  };
+
+  document.addEventListener('keydown', (e) => {
+    const g = GAME_MAP[currentScreen];
+    if (!g) return;
+    if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      e.preventDefault();
+    }
+    g.handleKey(e.key);
+  });
+})();
+</script>
+<script>
+/* ===================== Thème ===================== */
+(function() {
+  const THEMES = [
+    { key: "default", icon: "🎨" },
+    { key: "ocean", icon: "🌊" },
+    { key: "sunset", icon: "🌅" },
+    { key: "forest", icon: "🌲" },
+    { key: "mono", icon: "⚫" }
+  ];
+  let idx = 0;
+  const btn = document.getElementById("theme-toggle");
+
+  function applyTheme(i) {
+    idx = i;
+    const t = THEMES[idx];
+    if (t.key === "default") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", t.key);
+    }
+    btn.textContent = t.icon;
+  }
+
+  btn.addEventListener("click", () => {
+    applyTheme((idx + 1) % THEMES.length);
+  });
+
+  applyTheme(0);
+})();
+</script>
+<script>
+/* ===================== Modal Mises à jour ===================== */
+(function() {
+  const modal = document.getElementById("update-modal");
+  const openBtn = document.getElementById("update-open-btn");
+  const closeBtn = document.getElementById("update-close-btn");
+
+  openBtn.addEventListener("click", () => modal.classList.add("visible"));
+  closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.remove("visible");
+  });
+})();
+</script>
+</body>
+</html>
