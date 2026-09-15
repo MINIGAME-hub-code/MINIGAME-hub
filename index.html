@@ -232,6 +232,48 @@
     margin-top: 8px;
   }
 
+  .upgrade-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .upgrade-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--cell-bg);
+  }
+  .upgrade-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .upgrade-info { flex: 1; min-width: 0; }
+  .upgrade-name { font-weight: 700; font-size: 0.92rem; }
+  .upgrade-desc { color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
+  .upgrade-level { color: var(--muted); font-size: 0.76rem; margin-top: 4px; }
+  .upgrade-buy {
+    flex-shrink: 0;
+    background: var(--accent-4);
+    color: #0f172a;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.3;
+    cursor: pointer;
+    text-align: center;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .upgrade-buy:hover { filter: brightness(1.08); }
+  .upgrade-buy:active { transform: scale(0.95); }
+  .upgrade-buy:disabled {
+    background: var(--cell-bg-hover);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
   .footer-btns {
     display: flex;
     gap: 10px;
@@ -583,6 +625,16 @@
       </div>
 
       <div class="changelog-entry">
+        <div class="changelog-title">Améliorations du Chat Clicker (petite mise à jour)</div>
+        <ul class="changelog-list">
+          <li>Nouvelle amélioration "Autoclic" : +1 clic automatique par seconde à chaque achat</li>
+          <li>Nouvelle amélioration "Griffe affûtée" : +1 clic gagné à chaque clic manuel</li>
+          <li>Les clics servent maintenant de monnaie pour acheter les améliorations (montant disponible affiché séparément du total)</li>
+          <li>Le chat change désormais d'image tous les 10 000 clics au lieu de 100 000</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
         <div class="changelog-title">Chat Clicker + comptes locaux</div>
         <ul class="changelog-list">
           <li>Nouveau mini-jeu "Chat Clicker" : chaque clic compte, le chat change tous les 100 000 clics</li>
@@ -738,13 +790,37 @@
       <button id="clicker-cat" class="clicker-cat">🐱</button>
     </div>
     <div class="score-row">
-      <div>Clics <span class="value" id="clicker-count">0</span></div>
+      <div>Disponibles <span class="value" id="clicker-bank">0</span></div>
+      <div>Total <span class="value" id="clicker-count">0</span></div>
+    </div>
+    <div class="score-row">
       <div>Chat <span class="value" id="clicker-stage">1</span> / <span id="clicker-stage-max">10</span></div>
     </div>
     <div class="clicker-progress-outer">
       <div class="clicker-progress-inner" id="clicker-progress"></div>
     </div>
-    <div class="clicker-hint" id="clicker-remaining">100 000 clics avant le prochain chat</div>
+    <div class="clicker-hint" id="clicker-remaining">10 000 clics avant le prochain chat</div>
+
+    <div class="upgrade-list">
+      <div class="upgrade-card" id="upgrade-auto">
+        <div class="upgrade-icon">🤖</div>
+        <div class="upgrade-info">
+          <div class="upgrade-name">Autoclic</div>
+          <div class="upgrade-desc">+1 clic automatique / seconde par achat</div>
+          <div class="upgrade-level">Niveau <span id="upgrade-auto-level">0</span> — actuellement <span id="upgrade-auto-rate">0</span>/s</div>
+        </div>
+        <button class="upgrade-buy" id="upgrade-auto-buy">Acheter<br><span id="upgrade-auto-cost">50</span> clics</button>
+      </div>
+      <div class="upgrade-card" id="upgrade-power">
+        <div class="upgrade-icon">💪</div>
+        <div class="upgrade-info">
+          <div class="upgrade-name">Griffe affûtée</div>
+          <div class="upgrade-desc">+1 clic gagné par clic manuel</div>
+          <div class="upgrade-level">Niveau <span id="upgrade-power-level">0</span> — actuellement <span id="upgrade-power-value">1</span> / clic</div>
+        </div>
+        <button class="upgrade-buy" id="upgrade-power-buy">Acheter<br><span id="upgrade-power-cost">25</span> clics</button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -1717,9 +1793,13 @@ const FLAPPY = (function() {
 /* ===================== Chat Clicker ===================== */
 (function() {
   const STAGES = ["🐱","😺","😸","😻","😽","🙀","😿","😾","🐈","🐈‍⬛"];
-  const PER_STAGE = 100000;
+  const PER_STAGE = 10000;
+  const AUTO_BASE_COST = 50;
+  const POWER_BASE_COST = 25;
+  const GROWTH = 1.15;
 
   const catBtn = document.getElementById("clicker-cat");
+  const bankEl = document.getElementById("clicker-bank");
   const countEl = document.getElementById("clicker-count");
   const stageEl = document.getElementById("clicker-stage");
   const stageMaxEl = document.getElementById("clicker-stage-max");
@@ -1727,40 +1807,103 @@ const FLAPPY = (function() {
   const remainingEl = document.getElementById("clicker-remaining");
   const statusEl = document.getElementById("clicker-status");
 
-  let count = Store.get("clicker_count", 0);
+  const autoLevelEl = document.getElementById("upgrade-auto-level");
+  const autoRateEl = document.getElementById("upgrade-auto-rate");
+  const autoCostEl = document.getElementById("upgrade-auto-cost");
+  const autoBuyBtn = document.getElementById("upgrade-auto-buy");
+
+  const powerLevelEl = document.getElementById("upgrade-power-level");
+  const powerValueEl = document.getElementById("upgrade-power-value");
+  const powerCostEl = document.getElementById("upgrade-power-cost");
+  const powerBuyBtn = document.getElementById("upgrade-power-buy");
+
+  let total = Store.get("clicker_total", null);
+  if (total === null) {
+    total = Store.get("clicker_count", 0);
+  }
+  let bank = Store.get("clicker_bank", total);
+  let autoLevel = Store.get("clicker_auto_level", 0);
+  let powerLevel = Store.get("clicker_power_level", 0);
+  const clickPower = () => 1 + powerLevel;
+  const autoCost = () => Math.round(AUTO_BASE_COST * Math.pow(GROWTH, autoLevel));
+  const powerCost = () => Math.round(POWER_BASE_COST * Math.pow(GROWTH, powerLevel));
+
   stageMaxEl.textContent = STAGES.length;
 
-  function format(n) { return n.toLocaleString("fr-FR"); }
+  function format(n) { return Math.floor(n).toLocaleString("fr-FR"); }
+
+  function persist() {
+    Store.set("clicker_total", total);
+    Store.set("clicker_bank", bank);
+    Store.set("clicker_auto_level", autoLevel);
+    Store.set("clicker_power_level", powerLevel);
+  }
 
   function render() {
-    const stageIndex = Math.min(Math.floor(count / PER_STAGE), STAGES.length - 1);
+    const stageIndex = Math.min(Math.floor(total / PER_STAGE), STAGES.length - 1);
     catBtn.textContent = STAGES[stageIndex];
-    countEl.textContent = format(count);
+    bankEl.textContent = format(bank);
+    countEl.textContent = format(total);
     stageEl.textContent = stageIndex + 1;
 
-    if (stageIndex >= STAGES.length - 1 && count >= PER_STAGE * (STAGES.length - 1)) {
+    if (stageIndex >= STAGES.length - 1 && total >= PER_STAGE * (STAGES.length - 1)) {
       progressEl.style.width = "100%";
       remainingEl.textContent = "Dernier chat débloqué !";
       statusEl.textContent = "Tu as débloqué tous les chats 🎉";
     } else {
-      const dansEtape = count % PER_STAGE;
+      const dansEtape = total % PER_STAGE;
       progressEl.style.width = (dansEtape / PER_STAGE * 100) + "%";
       remainingEl.textContent = format(PER_STAGE - dansEtape) + " clics avant le prochain chat";
       statusEl.textContent = "Clique sur le chat !";
     }
+
+    autoLevelEl.textContent = autoLevel;
+    autoRateEl.textContent = autoLevel;
+    autoCostEl.textContent = format(autoCost());
+    autoBuyBtn.disabled = bank < autoCost();
+
+    powerLevelEl.textContent = powerLevel;
+    powerValueEl.textContent = clickPower();
+    powerCostEl.textContent = format(powerCost());
+    powerBuyBtn.disabled = bank < powerCost();
   }
 
-  catBtn.addEventListener("click", () => {
-    const prevStage = Math.min(Math.floor(count / PER_STAGE), STAGES.length - 1);
-    count++;
-    Store.set("clicker_count", count);
-    render();
-    const newStage = Math.min(Math.floor(count / PER_STAGE), STAGES.length - 1);
+  function gain(amount) {
+    const prevStage = Math.min(Math.floor(total / PER_STAGE), STAGES.length - 1);
+    total += amount;
+    bank += amount;
+    const newStage = Math.min(Math.floor(total / PER_STAGE), STAGES.length - 1);
     if (newStage > prevStage) {
       catBtn.style.transform = "scale(1.3)";
       setTimeout(() => { catBtn.style.transform = ""; }, 200);
     }
+    persist();
+    render();
+  }
+
+  catBtn.addEventListener("click", () => gain(clickPower()));
+
+  autoBuyBtn.addEventListener("click", () => {
+    const cost = autoCost();
+    if (bank < cost) return;
+    bank -= cost;
+    autoLevel++;
+    persist();
+    render();
   });
+
+  powerBuyBtn.addEventListener("click", () => {
+    const cost = powerCost();
+    if (bank < cost) return;
+    bank -= cost;
+    powerLevel++;
+    persist();
+    render();
+  });
+
+  setInterval(() => {
+    if (autoLevel > 0) gain(autoLevel);
+  }, 1000);
 
   render();
 })();
