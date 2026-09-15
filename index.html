@@ -124,6 +124,113 @@
   .game-card.c-snake { border-color: rgba(74,222,128,0.35); }
   .game-card.c-tetris { border-color: rgba(192,132,252,0.35); }
   .game-card.c-flappy { border-color: rgba(56,189,248,0.35); }
+  .game-card.c-clicker { border-color: rgba(244,114,182,0.35); }
+
+  .profile-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .profile-switch-btn {
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .profile-switch-btn:hover { background: var(--cell-bg-hover); }
+
+  .profile-note {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+  .profile-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: var(--cell-bg);
+  }
+  .profile-item.active { border-color: var(--accent-o); }
+  .profile-item button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .profile-item button:hover { background: var(--cell-bg-hover); }
+  .profile-new-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .profile-new-row input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--cell-bg);
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .profile-new-row button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-o);
+    color: #0f172a;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .clicker-wrap { display: flex; justify-content: center; margin: 20px 0; }
+  .clicker-cat {
+    font-size: 7rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.08s;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,0.35));
+  }
+  .clicker-cat:active { transform: scale(0.88); }
+  .clicker-progress-outer {
+    width: 100%;
+    max-width: 320px;
+    height: 10px;
+    margin: 12px auto 0;
+    background: var(--cell-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .clicker-progress-inner {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-4);
+    transition: width 0.15s;
+  }
+  .clicker-hint {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 8px;
+  }
 
   .footer-btns {
     display: flex;
@@ -413,6 +520,10 @@
   <!-- ===================== MENU ===================== -->
   <div class="screen active" id="screen-menu">
     <h1 class="hub-title">🎮 <span>MINIGAME HUB</span></h1>
+    <div class="profile-bar">
+      <span>👤 <span id="profile-name-display">Invité</span></span>
+      <button class="profile-switch-btn" id="profile-open-btn">Changer</button>
+    </div>
     <div class="hub-subtitle">Choisis un jeu pour commencer</div>
     <div class="game-grid">
       <div class="game-card c-ttt" data-target="screen-morpion">
@@ -435,10 +546,31 @@
         <div class="name">Flappy Bird</div>
         <div class="tag">Arcade</div>
       </div>
+      <div class="game-card c-clicker" data-target="screen-clicker" style="grid-column: 1 / span 2;">
+        <span class="icon">🐱</span>
+        <div class="name">Chat Clicker</div>
+        <div class="tag">Idle</div>
+      </div>
     </div>
     <div class="footer-btns">
       <a class="discord-btn" href="https://discord.gg/vRw2ff4Bp" target="_blank" rel="noopener noreferrer">💬 Discord</a>
       <button class="update-btn" id="update-open-btn">🆕 Mises à jour</button>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL PROFIL ===================== -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>👤 Profils</h2>
+        <button class="modal-close" id="profile-close-btn">✕</button>
+      </div>
+      <div class="profile-note">Les profils sont enregistrés uniquement dans ce navigateur (pas de mot de passe, pas de synchronisation entre appareils).</div>
+      <div id="profile-list"></div>
+      <div class="profile-new-row">
+        <input type="text" id="profile-new-input" placeholder="Nom du nouveau profil" maxlength="20">
+        <button id="profile-create-btn">Créer</button>
+      </div>
     </div>
   </div>
 
@@ -448,6 +580,16 @@
       <div class="modal-header">
         <h2>🆕 Mises à jour</h2>
         <button class="modal-close" id="update-close-btn">✕</button>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Chat Clicker + comptes locaux</div>
+        <ul class="changelog-list">
+          <li>Nouveau mini-jeu "Chat Clicker" : chaque clic compte, le chat change tous les 100 000 clics</li>
+          <li>Système de profils locaux (sans mot de passe) pour séparer les scores entre joueurs sur le même appareil</li>
+          <li>Tous les scores/records sont désormais sauvegardés (mémoire persistante) et retrouvés à chaque visite</li>
+          <li>L'IA du Morpion garde en mémoire ce qu'elle a appris entre les parties</li>
+        </ul>
       </div>
 
       <div class="changelog-entry">
@@ -584,6 +726,26 @@
     </div>
   </div>
 
+  <!-- ===================== CHAT CLICKER ===================== -->
+  <div class="screen" id="screen-clicker">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">🐱 Chat Clicker</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle" id="clicker-status">Clique sur le chat !</div>
+    <div class="clicker-wrap">
+      <button id="clicker-cat" class="clicker-cat">🐱</button>
+    </div>
+    <div class="score-row">
+      <div>Clics <span class="value" id="clicker-count">0</span></div>
+      <div>Chat <span class="value" id="clicker-stage">1</span> / <span id="clicker-stage-max">10</span></div>
+    </div>
+    <div class="clicker-progress-outer">
+      <div class="clicker-progress-inner" id="clicker-progress"></div>
+    </div>
+    <div class="clicker-hint" id="clicker-remaining">100 000 clics avant le prochain chat</div>
+  </div>
 
 </div>
 <script>
@@ -607,6 +769,110 @@ window.HUB = { onEnter: null, onLeave: null };
 </script>
 
 <script>
+/* ===================== Profil + Mémoire (localStorage) ===================== */
+const Profile = (function() {
+  const PROFILES_KEY = "mgh_profiles";
+  const ACTIVE_KEY = "mgh_active_profile";
+
+  function safeGet(key) {
+    try { return localStorage.getItem(key); } catch(e) { return null; }
+  }
+  function safeSet(key, val) {
+    try { localStorage.setItem(key, val); return true; } catch(e) { return false; }
+  }
+
+  function list() {
+    try { return JSON.parse(safeGet(PROFILES_KEY)) || []; } catch(e) { return []; }
+  }
+  function saveList(arr) { safeSet(PROFILES_KEY, JSON.stringify(arr)); }
+
+  function active() {
+    let a = safeGet(ACTIVE_KEY);
+    if (!a) {
+      a = "Invité";
+      const l = list();
+      if (!l.includes(a)) { l.push(a); saveList(l); }
+      safeSet(ACTIVE_KEY, a);
+    }
+    return a;
+  }
+
+  function create(name) {
+    name = (name || "").trim().slice(0, 20);
+    if (!name) return false;
+    const l = list();
+    if (!l.includes(name)) { l.push(name); saveList(l); }
+    safeSet(ACTIVE_KEY, name);
+    return true;
+  }
+
+  function switchTo(name) {
+    safeSet(ACTIVE_KEY, name);
+  }
+
+  return { list, active, create, switchTo };
+})();
+
+const Store = {
+  ns(name) { return "mgh_data_" + Profile.active() + "_" + name; },
+  get(name, fallback) {
+    try {
+      const raw = localStorage.getItem(this.ns(name));
+      return raw !== null ? JSON.parse(raw) : fallback;
+    } catch(e) { return fallback; }
+  },
+  set(name, value) {
+    try { localStorage.setItem(this.ns(name), JSON.stringify(value)); } catch(e) {}
+  }
+};
+
+(function() {
+  const nameDisplay = document.getElementById("profile-name-display");
+  const openBtn = document.getElementById("profile-open-btn");
+  const closeBtn = document.getElementById("profile-close-btn");
+  const modal = document.getElementById("profile-modal");
+  const listEl = document.getElementById("profile-list");
+  const newInput = document.getElementById("profile-new-input");
+  const createBtn = document.getElementById("profile-create-btn");
+
+  function renderList() {
+    const current = Profile.active();
+    nameDisplay.textContent = current;
+    listEl.innerHTML = "";
+    Profile.list().forEach(name => {
+      const row = document.createElement("div");
+      row.className = "profile-item" + (name === current ? " active" : "");
+      row.innerHTML = `<span>${name === current ? "✅ " : ""}${name}</span>`;
+      if (name !== current) {
+        const btn = document.createElement("button");
+        btn.textContent = "Utiliser";
+        btn.addEventListener("click", () => {
+          Profile.switchTo(name);
+          location.reload();
+        });
+        row.appendChild(btn);
+      }
+      listEl.appendChild(row);
+    });
+  }
+
+  openBtn.addEventListener("click", () => { renderList(); modal.classList.add("visible"); });
+  closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
+
+  createBtn.addEventListener("click", () => {
+    if (Profile.create(newInput.value)) {
+      newInput.value = "";
+      location.reload();
+    }
+  });
+  newInput.addEventListener("keydown", (e) => { if (e.key === "Enter") createBtn.click(); });
+
+  nameDisplay.textContent = Profile.active();
+})();
+</script>
+
+<script>
 /* ===================== MORPION ===================== */
 (function() {
   const LIGNES = [
@@ -619,7 +885,7 @@ window.HUB = { onEnter: null, onLeave: null };
   let joueur = "X";
   let contreIA = false;
   let fini = false;
-  let scores = { X: 0, O: 0, N: 0 };
+  let scores = Store.get("ttt_scores", { X: 0, O: 0, N: 0 });
 
   const boardEl = document.getElementById("ttt-board");
   const statusEl = document.getElementById("ttt-status");
@@ -727,9 +993,9 @@ window.HUB = { onEnter: null, onLeave: null };
     return variantes[0];
   }
 
-  let valeurs = {};
+  let valeurs = Store.get("ttt_ai_valeurs", {});
   let aiTrace = [];
-  let partiesApprises = 0;
+  let partiesApprises = Store.get("ttt_ai_parties", 0);
   const ALPHA = 0.3;
 
   function apprendre(recompense) {
@@ -743,6 +1009,8 @@ window.HUB = { onEnter: null, onLeave: null };
     }
     partiesApprises++;
     aiTrace = [];
+    Store.set("ttt_ai_valeurs", valeurs);
+    Store.set("ttt_ai_parties", partiesApprises);
     majPanneauApprentissage();
   }
 
@@ -802,6 +1070,7 @@ window.HUB = { onEnter: null, onLeave: null };
     document.getElementById("ttt-score-x").textContent = scores.X;
     document.getElementById("ttt-score-o").textContent = scores.O;
     document.getElementById("ttt-score-n").textContent = scores.N;
+    Store.set("ttt_scores", scores);
   }
 
   function nouvellePartie() {
@@ -817,6 +1086,7 @@ window.HUB = { onEnter: null, onLeave: null };
   document.getElementById("ttt-restart").addEventListener("click", nouvellePartie);
   document.getElementById("ttt-reset-score").addEventListener("click", () => {
     scores = { X: 0, O: 0, N: 0 };
+    Store.set("ttt_scores", scores);
     majScores();
   });
   document.getElementById("ttt-mode-pvp").addEventListener("click", () => {
@@ -838,6 +1108,7 @@ window.HUB = { onEnter: null, onLeave: null };
   creerPlateau();
   majAffichage();
   majStatutTour();
+  majScores();
 })();
 </script>
 
@@ -851,7 +1122,8 @@ const SNAKE = (function() {
   const scoreEl = document.getElementById("snake-score");
   const bestEl = document.getElementById("snake-best");
 
-  let snake, dir, nextDir, food, score, best = 0, running, gameOverFlag, loopId, speed;
+  let snake, dir, nextDir, food, score, best = Store.get("snake_best", 0), running, gameOverFlag, loopId, speed;
+  bestEl.textContent = best;
 
   function reset() {
     snake = [{x:7,y:7},{x:6,y:7},{x:5,y:7}];
@@ -902,7 +1174,7 @@ const SNAKE = (function() {
     if (head.x === food.x && head.y === food.y) {
       score++;
       scoreEl.textContent = score;
-      if (score > best) { best = score; bestEl.textContent = best; }
+      if (score > best) { best = score; bestEl.textContent = best; Store.set("snake_best", best); }
       placeFood();
       if (score % 5 === 0 && speed > 70) {
         speed -= 10;
@@ -1259,7 +1531,8 @@ const FLAPPY = (function() {
   const W = canvas.width, H = canvas.height;
   const GRAVITY = 0.35, FLAP_V = -6.2, PIPE_W = 46, GAP = 130, PIPE_SPEED = 2.4;
 
-  let bird, pipes, score, best = 0, running, started, gameOverFlag, rafId, frame;
+  let bird, pipes, score, best = Store.get("flappy_best", 0), running, started, gameOverFlag, rafId, frame;
+  bestEl.textContent = best;
 
   function reset() {
     bird = { x: 60, y: H/2, vy: 0, r: 12 };
@@ -1304,7 +1577,7 @@ const FLAPPY = (function() {
           p.passed = true;
           score++;
           scoreEl.textContent = score;
-          if (score > best) { best = score; bestEl.textContent = best; }
+          if (score > best) { best = score; bestEl.textContent = best; Store.set("flappy_best", best); }
         }
       });
 
@@ -1405,7 +1678,7 @@ const FLAPPY = (function() {
     { key: "forest", icon: "🌲" },
     { key: "mono", icon: "⚫" }
   ];
-  let idx = 0;
+  let idx = Store.get("theme_idx", 0);
   const btn = document.getElementById("theme-toggle");
 
   function applyTheme(i) {
@@ -1417,13 +1690,14 @@ const FLAPPY = (function() {
       document.documentElement.setAttribute("data-theme", t.key);
     }
     btn.textContent = t.icon;
+    Store.set("theme_idx", idx);
   }
 
   btn.addEventListener("click", () => {
     applyTheme((idx + 1) % THEMES.length);
   });
 
-  applyTheme(0);
+  applyTheme(idx);
 })();
 </script>
 <script>
@@ -1438,6 +1712,57 @@ const FLAPPY = (function() {
   modal.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.remove("visible");
   });
+})();
+</script><script>
+/* ===================== Chat Clicker ===================== */
+(function() {
+  const STAGES = ["🐱","😺","😸","😻","😽","🙀","😿","😾","🐈","🐈‍⬛"];
+  const PER_STAGE = 100000;
+
+  const catBtn = document.getElementById("clicker-cat");
+  const countEl = document.getElementById("clicker-count");
+  const stageEl = document.getElementById("clicker-stage");
+  const stageMaxEl = document.getElementById("clicker-stage-max");
+  const progressEl = document.getElementById("clicker-progress");
+  const remainingEl = document.getElementById("clicker-remaining");
+  const statusEl = document.getElementById("clicker-status");
+
+  let count = Store.get("clicker_count", 0);
+  stageMaxEl.textContent = STAGES.length;
+
+  function format(n) { return n.toLocaleString("fr-FR"); }
+
+  function render() {
+    const stageIndex = Math.min(Math.floor(count / PER_STAGE), STAGES.length - 1);
+    catBtn.textContent = STAGES[stageIndex];
+    countEl.textContent = format(count);
+    stageEl.textContent = stageIndex + 1;
+
+    if (stageIndex >= STAGES.length - 1 && count >= PER_STAGE * (STAGES.length - 1)) {
+      progressEl.style.width = "100%";
+      remainingEl.textContent = "Dernier chat débloqué !";
+      statusEl.textContent = "Tu as débloqué tous les chats 🎉";
+    } else {
+      const dansEtape = count % PER_STAGE;
+      progressEl.style.width = (dansEtape / PER_STAGE * 100) + "%";
+      remainingEl.textContent = format(PER_STAGE - dansEtape) + " clics avant le prochain chat";
+      statusEl.textContent = "Clique sur le chat !";
+    }
+  }
+
+  catBtn.addEventListener("click", () => {
+    const prevStage = Math.min(Math.floor(count / PER_STAGE), STAGES.length - 1);
+    count++;
+    Store.set("clicker_count", count);
+    render();
+    const newStage = Math.min(Math.floor(count / PER_STAGE), STAGES.length - 1);
+    if (newStage > prevStage) {
+      catBtn.style.transform = "scale(1.3)";
+      setTimeout(() => { catBtn.style.transform = ""; }, 200);
+    }
+  });
+
+  render();
 })();
 </script>
 </body>
