@@ -953,12 +953,13 @@ window.HUB = { onEnter: null, onLeave: null };
    Connexion affichera un message d'erreur au lieu de fonctionner.
 ==================================================================== */
 const firebaseConfig = {
-  apiKey: "REMPLACE_MOI",
-  authDomain: "REMPLACE_MOI.firebaseapp.com",
-  projectId: "REMPLACE_MOI",
-  storageBucket: "REMPLACE_MOI.appspot.com",
-  messagingSenderId: "REMPLACE_MOI",
-  appId: "REMPLACE_MOI"
+  apiKey: "AIzaSyB8IkS7ohHGmKMR-Ey6zxnl1YHFO_5UBPU",
+  authDomain: "minigame-hub-bc0f9.firebaseapp.com",
+  projectId: "minigame-hub-bc0f9",
+  storageBucket: "minigame-hub-bc0f9.firebasestorage.app",
+  messagingSenderId: "68956128592",
+  appId: "1:68956128592:web:b710edc96d486448b41855",
+  measurementId: "G-CY3NV3RN2T"
 };
 
 let fbReady = false;
@@ -1116,6 +1117,129 @@ const Store = {
   newInput.addEventListener("keydown", (e) => { if (e.key === "Enter") createBtn.click(); });
 
   nameDisplay.textContent = Profile.active();
+})();
+</script>
+
+<script>
+/* ===================== Authentification (compte en ligne) ===================== */
+(function() {
+  const openBtn = document.getElementById("auth-open-btn");
+  const closeBtn = document.getElementById("auth-close-btn");
+  const modal = document.getElementById("auth-modal");
+  const tabLogin = document.getElementById("auth-tab-login");
+  const tabSignup = document.getElementById("auth-tab-signup");
+  const emailInput = document.getElementById("auth-email");
+  const passInput = document.getElementById("auth-password");
+  const errorEl = document.getElementById("auth-error");
+  const submitBtn = document.getElementById("auth-submit");
+  const loggedOutView = document.getElementById("auth-logged-out");
+  const loggedInView = document.getElementById("auth-logged-in");
+  const currentEmailEl = document.getElementById("auth-current-email");
+  const logoutBtn = document.getElementById("auth-logout");
+
+  let mode = "login"; // ou "signup"
+
+  function setMode(m) {
+    mode = m;
+    tabLogin.classList.toggle("active", m === "login");
+    tabSignup.classList.toggle("active", m === "signup");
+    submitBtn.textContent = m === "login" ? "Se connecter" : "Créer le compte";
+    errorEl.textContent = "";
+  }
+
+  function refreshView() {
+    const uid = getActiveUid();
+    const email = getActiveEmail();
+    if (uid && email) {
+      loggedOutView.style.display = "none";
+      loggedInView.style.display = "block";
+      currentEmailEl.textContent = email;
+      openBtn.textContent = "🔐 " + email.split("@")[0];
+    } else {
+      loggedOutView.style.display = "block";
+      loggedInView.style.display = "none";
+      openBtn.textContent = "🔐 Connexion";
+    }
+  }
+
+  openBtn.addEventListener("click", () => {
+    errorEl.textContent = "";
+    modal.classList.add("visible");
+  });
+  closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
+
+  tabLogin.addEventListener("click", () => setMode("login"));
+  tabSignup.addEventListener("click", () => setMode("signup"));
+
+  function friendlyError(code) {
+    const map = {
+      "auth/invalid-email": "Adresse e-mail invalide.",
+      "auth/missing-password": "Mot de passe manquant.",
+      "auth/weak-password": "Le mot de passe doit faire au moins 6 caractères.",
+      "auth/email-already-in-use": "Un compte existe déjà avec cet e-mail.",
+      "auth/user-not-found": "Aucun compte avec cet e-mail.",
+      "auth/wrong-password": "Mot de passe incorrect.",
+      "auth/invalid-credential": "E-mail ou mot de passe incorrect.",
+      "auth/too-many-requests": "Trop de tentatives, réessaie plus tard."
+    };
+    return map[code] || ("Erreur : " + code);
+  }
+
+  submitBtn.addEventListener("click", async () => {
+    errorEl.textContent = "";
+
+    if (!fbReady) {
+      errorEl.textContent = "Les comptes en ligne ne sont pas encore configurés sur ce site (Firebase manquant).";
+      return;
+    }
+
+    const email = emailInput.value.trim();
+    const pass = passInput.value;
+    if (!email || !pass) {
+      errorEl.textContent = "Remplis l'e-mail et le mot de passe.";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "...";
+
+    try {
+      let cred;
+      if (mode === "signup") {
+        cred = await fbAuth.createUserWithEmailAndPassword(email, pass);
+      } else {
+        cred = await fbAuth.signInWithEmailAndPassword(email, pass);
+      }
+      const uid = cred.user.uid;
+
+      if (mode === "login") {
+        await CloudSync.pullAll(uid);
+      }
+
+      localStorage.setItem(UID_KEY, uid);
+      localStorage.setItem(EMAIL_KEY, email);
+      location.reload();
+    } catch (err) {
+      errorEl.textContent = friendlyError(err.code);
+      submitBtn.disabled = false;
+      setMode(mode);
+    }
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    try { if (fbAuth) await fbAuth.signOut(); } catch(e) {}
+    localStorage.removeItem(UID_KEY);
+    localStorage.removeItem(EMAIL_KEY);
+    location.reload();
+  });
+
+  if (!fbReady) {
+    errorEl.textContent = "Les comptes en ligne ne sont pas encore configurés sur ce site.";
+  }
+
+  setMode("login");
+  refreshView();
 })();
 </script>
 
