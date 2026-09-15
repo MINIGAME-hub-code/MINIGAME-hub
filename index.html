@@ -152,6 +152,53 @@
     margin-bottom: 14px;
     line-height: 1.4;
   }
+
+  .auth-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--cell-bg);
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .auth-tab.active { background: var(--accent-o); color: #0f172a; border-color: transparent; }
+  .auth-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--cell-bg);
+    color: var(--text);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .auth-error {
+    color: #f87171;
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+    min-height: 1em;
+  }
+  .auth-submit {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-o);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
   .profile-item {
     display: flex;
     align-items: center;
@@ -276,9 +323,11 @@
 
   .footer-btns {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 22px;
   }
+  .footer-btns > * { flex: 1 1 30%; }
   .discord-btn {
     display: flex;
     align-items: center;
@@ -597,6 +646,34 @@
     <div class="footer-btns">
       <a class="discord-btn" href="https://discord.gg/vRw2ff4Bp" target="_blank" rel="noopener noreferrer">💬 Discord</a>
       <button class="update-btn" id="update-open-btn">🆕 Mises à jour</button>
+      <button class="update-btn" id="auth-open-btn">🔐 Connexion</button>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL COMPTE ===================== -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🔐 Compte</h2>
+        <button class="modal-close" id="auth-close-btn">✕</button>
+      </div>
+
+      <div id="auth-logged-out">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="auth-tab-login">Se connecter</button>
+          <button class="auth-tab" id="auth-tab-signup">Créer un compte</button>
+        </div>
+        <div class="profile-note">Un compte en ligne synchronise tes scores et te permet de te reconnecter depuis n'importe quel navigateur ou appareil.</div>
+        <input type="email" id="auth-email" class="auth-input" placeholder="Adresse e-mail" autocomplete="email">
+        <input type="password" id="auth-password" class="auth-input" placeholder="Mot de passe (6 caractères min.)" autocomplete="current-password">
+        <div class="auth-error" id="auth-error"></div>
+        <button class="auth-submit" id="auth-submit">Se connecter</button>
+      </div>
+
+      <div id="auth-logged-in" style="display:none;">
+        <div class="profile-note">Connecté avec <strong id="auth-current-email"></strong></div>
+        <button class="auth-submit" id="auth-logout">Se déconnecter</button>
+      </div>
     </div>
   </div>
 
@@ -844,6 +921,95 @@ document.querySelectorAll('.game-card').forEach(card => {
 window.HUB = { onEnter: null, onLeave: null };
 </script>
 
+<!--
+  ====================================================================
+  CONFIGURATION REQUISE POUR LES COMPTES EN LIGNE (voir plus bas)
+  Ces 3 scripts chargent le SDK Firebase (gratuit) utilisé pour
+  l'authentification par email/mot de passe et la synchronisation
+  des données entre navigateurs/appareils.
+  ====================================================================
+-->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* ===================== Configuration Firebase =====================
+   1. Va sur https://console.firebase.google.com, crée un projet gratuit
+   2. Dans "Authentification" -> "Sign-in method" -> active "E-mail/Mot de passe"
+   3. Dans "Firestore Database" -> crée une base (mode production)
+   4. Dans les règles Firestore, colle :
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /profiles/{uid} {
+              allow read, write: if request.auth != null && request.auth.uid == uid;
+            }
+          }
+        }
+   5. Dans "Paramètres du projet" -> "Vos applications" -> crée une app Web,
+      copie l'objet de config et colle-le ci-dessous à la place de celui-ci.
+   Tant que ceci n'est pas rempli avec TES vraies valeurs, le bouton
+   Connexion affichera un message d'erreur au lieu de fonctionner.
+==================================================================== */
+const firebaseConfig = {
+  apiKey: "REMPLACE_MOI",
+  authDomain: "REMPLACE_MOI.firebaseapp.com",
+  projectId: "REMPLACE_MOI",
+  storageBucket: "REMPLACE_MOI.appspot.com",
+  messagingSenderId: "REMPLACE_MOI",
+  appId: "REMPLACE_MOI"
+};
+
+let fbReady = false;
+try {
+  if (firebaseConfig.apiKey !== "REMPLACE_MOI") {
+    firebase.initializeApp(firebaseConfig);
+    fbReady = true;
+  }
+} catch(e) { console.warn("Firebase non configuré :", e); }
+
+const fbAuth = fbReady ? firebase.auth() : null;
+const fbDb = fbReady ? firebase.firestore() : null;
+
+const UID_KEY = "mgh_active_uid";
+const EMAIL_KEY = "mgh_active_email";
+function getActiveUid() {
+  try { return localStorage.getItem(UID_KEY); } catch(e) { return null; }
+}
+function getActiveEmail() {
+  try { return localStorage.getItem(EMAIL_KEY); } catch(e) { return null; }
+}
+
+const CloudSync = {
+  pending: {},
+  timer: null,
+  queue(name, value) {
+    if (!fbDb) return;
+    const uid = getActiveUid();
+    if (!uid) return;
+    this.pending[name] = value;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(uid), 2000);
+  },
+  flush(uid) {
+    const data = this.pending;
+    this.pending = {};
+    if (Object.keys(data).length === 0) return;
+    fbDb.collection("profiles").doc(uid).set(data, { merge: true }).catch(err => console.warn("Sync cloud échouée :", err));
+  },
+  async pullAll(uid) {
+    const doc = await fbDb.collection("profiles").doc(uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      Object.keys(data).forEach(k => {
+        localStorage.setItem("mgh_data_cloud_" + uid + "_" + k, JSON.stringify(data[k]));
+      });
+    }
+  }
+};
+</script>
+
 <script>
 /* ===================== Profil + Mémoire (localStorage) ===================== */
 const Profile = (function() {
@@ -890,7 +1056,11 @@ const Profile = (function() {
 })();
 
 const Store = {
-  ns(name) { return "mgh_data_" + Profile.active() + "_" + name; },
+  ns(name) {
+    const uid = getActiveUid();
+    if (uid) return "mgh_data_cloud_" + uid + "_" + name;
+    return "mgh_data_" + Profile.active() + "_" + name;
+  },
   get(name, fallback) {
     try {
       const raw = localStorage.getItem(this.ns(name));
@@ -899,6 +1069,7 @@ const Store = {
   },
   set(name, value) {
     try { localStorage.setItem(this.ns(name), JSON.stringify(value)); } catch(e) {}
+    CloudSync.queue(name, value);
   }
 };
 
