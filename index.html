@@ -812,6 +812,14 @@
       </div>
 
       <div class="changelog-entry">
+        <div class="changelog-title">Petits ajustements</div>
+        <ul class="changelog-list">
+          <li>Nouvelle amélioration Chat Clicker : "Griffe en diamant" (+10 clics par clic manuel, coût 1 000 clics)</li>
+          <li>Cube Rush : vitesse fixée à une valeur raisonnable sur les 3 niveaux, elle n'augmente plus pendant la partie</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
         <div class="changelog-title">Nouveau jeu : Cube Rush</div>
         <ul class="changelog-list">
           <li>Nouveau mini-jeu d'arcade : saute par-dessus les pics, un seul contact met fin à la partie</li>
@@ -1015,6 +1023,15 @@
           <div class="upgrade-level">Niveau <span id="upgrade-power-level">0</span> — actuellement <span id="upgrade-power-value">1</span> / clic</div>
         </div>
         <button class="upgrade-buy" id="upgrade-power-buy">Acheter<br><span id="upgrade-power-cost">25</span> clics</button>
+      </div>
+      <div class="upgrade-card" id="upgrade-megapower">
+        <div class="upgrade-icon">💎</div>
+        <div class="upgrade-info">
+          <div class="upgrade-name">Griffe en diamant</div>
+          <div class="upgrade-desc">+10 clics gagnés par clic manuel</div>
+          <div class="upgrade-level">Niveau <span id="upgrade-megapower-level">0</span></div>
+        </div>
+        <button class="upgrade-buy" id="upgrade-megapower-buy">Acheter<br><span id="upgrade-megapower-cost">1 000</span> clics</button>
       </div>
     </div>
   </div>
@@ -2195,9 +2212,9 @@ const CUBERUSH = (function() {
   const deathMsg = document.getElementById("cr-death-msg");
 
   const LEVELS = {
-    facile:   { label:'Facile',    baseSpeed:4.6, gravity:0.72, jumpForce:-12.6, gapMin:300, gapMax:480, doubleChance:0.10, ramp:0.03 },
-    normal:   { label:'Normal',    baseSpeed:6,   gravity:0.85, jumpForce:-14.5, gapMin:220, gapMax:400, doubleChance:0.22, ramp:0.05 },
-    difficile:{ label:'Difficile', baseSpeed:7.6, gravity:0.98, jumpForce:-15.8, gapMin:150, gapMax:290, doubleChance:0.34, ramp:0.07 }
+    facile:   { label:'Facile',    baseSpeed:4.6, gravity:0.72, jumpForce:-12.6, gapMin:300, gapMax:480, doubleChance:0.10, ramp:0 },
+    normal:   { label:'Normal',    baseSpeed:6,   gravity:0.85, jumpForce:-14.5, gapMin:220, gapMax:400, doubleChance:0.22, ramp:0 },
+    difficile:{ label:'Difficile', baseSpeed:7.6, gravity:0.98, jumpForce:-15.8, gapMin:150, gapMax:290, doubleChance:0.34, ramp:0 }
   };
   let currentLevel = "normal";
   let bests = Store.get("cuberush_bests", { facile: 0, normal: 0, difficile: 0 });
@@ -2321,7 +2338,7 @@ const CUBERUSH = (function() {
     state.score += dt * 0.06 * (state.speed / state.baseSpeed);
     scoreEl.textContent = Math.floor(state.score);
 
-    state.speed = state.baseSpeed + Math.min(state.time * state.ramp, 5.5);
+    state.speed = state.baseSpeed;
 
     player.vy += state.gravity;
     player.y += player.vy;
@@ -2605,6 +2622,7 @@ const CUBERUSH = (function() {
   const PER_STAGE = 10000;
   const AUTO_BASE_COST = 50;
   const POWER_BASE_COST = 25;
+  const MEGAPOWER_BASE_COST = 1000;
   const GROWTH = 1.15;
 
   const catBtn = document.getElementById("clicker-cat");
@@ -2626,6 +2644,10 @@ const CUBERUSH = (function() {
   const powerCostEl = document.getElementById("upgrade-power-cost");
   const powerBuyBtn = document.getElementById("upgrade-power-buy");
 
+  const megapowerLevelEl = document.getElementById("upgrade-megapower-level");
+  const megapowerCostEl = document.getElementById("upgrade-megapower-cost");
+  const megapowerBuyBtn = document.getElementById("upgrade-megapower-buy");
+
   let total = Store.get("clicker_total", null);
   if (total === null) {
     total = Store.get("clicker_count", 0);
@@ -2633,9 +2655,11 @@ const CUBERUSH = (function() {
   let bank = Store.get("clicker_bank", total);
   let autoLevel = Store.get("clicker_auto_level", 0);
   let powerLevel = Store.get("clicker_power_level", 0);
-  const clickPower = () => 1 + powerLevel;
+  let megapowerLevel = Store.get("clicker_megapower_level", 0);
+  const clickPower = () => 1 + powerLevel + megapowerLevel * 10;
   const autoCost = () => Math.round(AUTO_BASE_COST * Math.pow(GROWTH, autoLevel));
   const powerCost = () => Math.round(POWER_BASE_COST * Math.pow(GROWTH, powerLevel));
+  const megapowerCost = () => Math.round(MEGAPOWER_BASE_COST * Math.pow(GROWTH, megapowerLevel));
 
   stageMaxEl.textContent = STAGES.length;
 
@@ -2646,6 +2670,7 @@ const CUBERUSH = (function() {
     Store.set("clicker_bank", bank);
     Store.set("clicker_auto_level", autoLevel);
     Store.set("clicker_power_level", powerLevel);
+    Store.set("clicker_megapower_level", megapowerLevel);
   }
 
   function render() {
@@ -2675,6 +2700,10 @@ const CUBERUSH = (function() {
     powerValueEl.textContent = clickPower();
     powerCostEl.textContent = format(powerCost());
     powerBuyBtn.disabled = bank < powerCost();
+
+    megapowerLevelEl.textContent = megapowerLevel;
+    megapowerCostEl.textContent = format(megapowerCost());
+    megapowerBuyBtn.disabled = bank < megapowerCost();
   }
 
   function gain(amount) {
@@ -2706,6 +2735,15 @@ const CUBERUSH = (function() {
     if (bank < cost) return;
     bank -= cost;
     powerLevel++;
+    persist();
+    render();
+  });
+
+  megapowerBuyBtn.addEventListener("click", () => {
+    const cost = megapowerCost();
+    if (bank < cost) return;
+    bank -= cost;
+    megapowerLevel++;
     persist();
     render();
   });
