@@ -1214,7 +1214,11 @@ const Store = {
       const uid = cred.user.uid;
 
       if (mode === "login") {
-        await CloudSync.pullAll(uid);
+        try {
+          await CloudSync.pullAll(uid);
+        } catch (pullErr) {
+          console.warn("Récupération des données cloud impossible (connexion quand même effectuée) :", pullErr);
+        }
       }
 
       localStorage.setItem(UID_KEY, uid);
