@@ -812,6 +812,20 @@
       </div>
 
       <div class="changelog-entry">
+        <div class="changelog-title">Chat mythique à 1 milliard</div>
+        <ul class="changelog-list">
+          <li>Nouveau chat ultime 🐱👑✨ à débloquer à 1 000 000 000 de clics totaux</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Nouveaux chats à débloquer</div>
+        <ul class="changelog-list">
+          <li>5 nouveaux chats plus rares : 🐯 (150 000), 🐅 (300 000), 🐆 (500 000), 🦁 (750 000) et 🐱👑 (1 000 000, le chat ultime)</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
         <div class="changelog-title">Petits ajustements</div>
         <ul class="changelog-list">
           <li>Nouvelle amélioration Chat Clicker : "Griffe en diamant" (+10 clics par clic manuel, coût 1 000 clics)</li>
@@ -2618,8 +2632,32 @@ const CUBERUSH = (function() {
 </script><script>
 /* ===================== Chat Clicker ===================== */
 (function() {
-  const STAGES = ["🐱","😺","😸","😻","😽","🙀","😿","😾","🐈","🐈‍⬛"];
-  const PER_STAGE = 10000;
+  const STAGES = [
+    { t: 0,       emoji: "🐱" },
+    { t: 10000,   emoji: "😺" },
+    { t: 20000,   emoji: "😸" },
+    { t: 30000,   emoji: "😻" },
+    { t: 40000,   emoji: "😽" },
+    { t: 50000,   emoji: "🙀" },
+    { t: 60000,   emoji: "😿" },
+    { t: 70000,   emoji: "😾" },
+    { t: 80000,   emoji: "🐈" },
+    { t: 90000,   emoji: "🐈‍⬛" },
+    { t: 150000,  emoji: "🐯" },
+    { t: 300000,  emoji: "🐅" },
+    { t: 500000,  emoji: "🐆" },
+    { t: 750000,  emoji: "🦁" },
+    { t: 1000000, emoji: "🐱👑" },
+    { t: 1000000000, emoji: "🐱👑✨" }
+  ];
+
+  function stageIndexFor(n) {
+    let idx = 0;
+    for (let i = 0; i < STAGES.length; i++) {
+      if (n >= STAGES[i].t) idx = i; else break;
+    }
+    return idx;
+  }
   const AUTO_BASE_COST = 50;
   const POWER_BASE_COST = 25;
   const MEGAPOWER_BASE_COST = 1000;
@@ -2674,20 +2712,23 @@ const CUBERUSH = (function() {
   }
 
   function render() {
-    const stageIndex = Math.min(Math.floor(total / PER_STAGE), STAGES.length - 1);
-    catBtn.textContent = STAGES[stageIndex];
+    const stageIndex = stageIndexFor(total);
+    catBtn.textContent = STAGES[stageIndex].emoji;
     bankEl.textContent = format(bank);
     countEl.textContent = format(total);
     stageEl.textContent = stageIndex + 1;
 
-    if (stageIndex >= STAGES.length - 1 && total >= PER_STAGE * (STAGES.length - 1)) {
+    if (stageIndex >= STAGES.length - 1) {
       progressEl.style.width = "100%";
       remainingEl.textContent = "Dernier chat débloqué !";
       statusEl.textContent = "Tu as débloqué tous les chats 🎉";
     } else {
-      const dansEtape = total % PER_STAGE;
-      progressEl.style.width = (dansEtape / PER_STAGE * 100) + "%";
-      remainingEl.textContent = format(PER_STAGE - dansEtape) + " clics avant le prochain chat";
+      const curT = STAGES[stageIndex].t;
+      const nextT = STAGES[stageIndex + 1].t;
+      const dansEtape = total - curT;
+      const tailleEtape = nextT - curT;
+      progressEl.style.width = (dansEtape / tailleEtape * 100) + "%";
+      remainingEl.textContent = format(nextT - total) + " clics avant le prochain chat";
       statusEl.textContent = "Clique sur le chat !";
     }
 
@@ -2707,10 +2748,10 @@ const CUBERUSH = (function() {
   }
 
   function gain(amount) {
-    const prevStage = Math.min(Math.floor(total / PER_STAGE), STAGES.length - 1);
+    const prevStage = stageIndexFor(total);
     total += amount;
     bank += amount;
-    const newStage = Math.min(Math.floor(total / PER_STAGE), STAGES.length - 1);
+    const newStage = stageIndexFor(total);
     if (newStage > prevStage) {
       catBtn.style.transform = "scale(1.3)";
       setTimeout(() => { catBtn.style.transform = ""; }, 200);
