@@ -602,6 +602,111 @@
   .learn-box.visible { display: block; }
   .learn-box b { color: var(--text); }
 
+  .game-card.c-cuberush { border-color: rgba(255,46,99,0.35); }
+
+  /* ---------- Cube Rush ---------- */
+  .cr-level-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cr-level-card {
+    background: var(--cell-bg);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.1s;
+  }
+  .cr-level-card:active { transform: scale(0.98); }
+  .cr-level-card h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cr-level-card p { margin: 0; font-size: 0.78rem; color: var(--muted); }
+  .cr-level-best { font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+  .cr-level-card.cr-facile { border-color: #00f5d4; }
+  .cr-level-card.cr-facile h3 { color: #00f5d4; }
+  .cr-level-card.cr-normal { border-color: #ffd23f; }
+  .cr-level-card.cr-normal h3 { color: #ffd23f; }
+  .cr-level-card.cr-difficile { border-color: #ff2e63; }
+  .cr-level-card.cr-difficile h3 { color: #ff2e63; }
+
+  .cr-canvas-wrap {
+    position: relative;
+    width: 340px;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  #cr-canvas {
+    display: block;
+    width: 100%;
+    max-width: 340px;
+    height: 420px;
+    background: linear-gradient(180deg, #1a0b3d 0%, #0d0221 65%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    touch-action: none;
+  }
+  .cr-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    background: rgba(13,2,33,0.82);
+    backdrop-filter: blur(2px);
+    border-radius: 12px;
+    padding: 20px;
+    transition: opacity 0.15s;
+  }
+  .cr-overlay.hidden { opacity: 0; pointer-events: none; }
+  .cr-overlay-title {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    color: #f4f1ff;
+    font-weight: 800;
+  }
+  .cr-overlay-title span { color: #00f5d4; }
+  .cr-overlay p {
+    margin: 0;
+    opacity: 0.85;
+    font-size: 0.8rem;
+    max-width: 240px;
+    line-height: 1.5;
+    color: #f4f1ff;
+  }
+  .cr-death-msg { display: none; color: #ff2e63 !important; font-weight: 700; opacity: 1 !important; }
+  .cr-overlay-btn {
+    margin-top: 4px;
+    padding: 12px 30px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #0d0221;
+    background: #00f5d4;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 0 18px rgba(0,245,212,0.4);
+    cursor: pointer;
+  }
+  .cr-overlay-btn.cr-secondary {
+    background: transparent;
+    color: #f4f1ff;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 9px 22px;
+  }
 </style>
 </head>
 <body>
@@ -635,6 +740,11 @@
       <div class="game-card c-flappy" data-target="screen-flappy">
         <span class="icon">🐦</span>
         <div class="name">Flappy Bird</div>
+        <div class="tag">Arcade</div>
+      </div>
+      <div class="game-card c-cuberush" data-target="screen-cuberush-levels" style="grid-column: 1 / span 2;">
+        <span class="icon">⬛</span>
+        <div class="name">Cube Rush</div>
         <div class="tag">Arcade</div>
       </div>
       <div class="game-card c-clicker" data-target="screen-clicker" style="grid-column: 1 / span 2;">
@@ -699,6 +809,15 @@
       <div class="modal-header">
         <h2>🆕 Mises à jour</h2>
         <button class="modal-close" id="update-close-btn">✕</button>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Nouveau jeu : Cube Rush</div>
+        <ul class="changelog-list">
+          <li>Nouveau mini-jeu d'arcade : saute par-dessus les pics, un seul contact met fin à la partie</li>
+          <li>3 niveaux de difficulté : Facile, Normal, Difficile</li>
+          <li>Meilleurs scores sauvegardés par niveau (synchronisés avec ton compte)</li>
+        </ul>
       </div>
 
       <div class="changelog-entry">
@@ -897,6 +1016,54 @@
         </div>
         <button class="upgrade-buy" id="upgrade-power-buy">Acheter<br><span id="upgrade-power-cost">25</span> clics</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== CUBE RUSH — NIVEAUX ===================== -->
+  <div class="screen" id="screen-cuberush-levels">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">⬛ Cube Rush</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle">Choisis une difficulté</div>
+    <div class="cr-level-list">
+      <div class="cr-level-card cr-facile" data-level="facile">
+        <h3>Facile <span class="cr-level-best" id="cr-best-facile">Meilleur : 0</span></h3>
+        <p>Vitesse réduite, pics espacés. Pour s'échauffer.</p>
+      </div>
+      <div class="cr-level-card cr-normal" data-level="normal">
+        <h3>Normal <span class="cr-level-best" id="cr-best-normal">Meilleur : 0</span></h3>
+        <p>Le rythme classique de Cube Rush.</p>
+      </div>
+      <div class="cr-level-card cr-difficile" data-level="difficile">
+        <h3>Difficile <span class="cr-level-best" id="cr-best-difficile">Meilleur : 0</span></h3>
+        <p>Rapide, pics rapprochés, doubles pics fréquents.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CUBE RUSH — JEU ===================== -->
+  <div class="screen" id="screen-cuberush">
+    <div class="game-header">
+      <button class="back-btn" data-back>← Menu</button>
+      <div class="game-title">⬛ Cube Rush</div>
+      <div class="spacer-btn"></div>
+    </div>
+    <div class="subtitle" id="cr-hud-level">Niveau : —</div>
+    <div class="cr-canvas-wrap">
+      <canvas id="cr-canvas" width="340" height="420"></canvas>
+      <div id="cr-overlay" class="cr-overlay">
+        <h1 class="cr-overlay-title">CUBE <span>RUSH</span></h1>
+        <p id="cr-intro-msg">Touche l'écran ou appuie sur ESPACE pour sauter par-dessus les pics. Un seul contact et c'est fini.</p>
+        <p id="cr-death-msg" class="cr-death-msg">Écrasé ! Réessaie.</p>
+        <button class="cr-overlay-btn" id="cr-play-btn">JOUER</button>
+        <button class="cr-overlay-btn cr-secondary" id="cr-change-level-btn" style="display:none;">Changer de niveau</button>
+      </div>
+    </div>
+    <div class="score-row">
+      <div>Score <span class="value" id="cr-score">0</span></div>
+      <div>Record <span class="value" id="cr-best">0</span></div>
     </div>
   </div>
 
@@ -2011,13 +2178,356 @@ const FLAPPY = (function() {
   };
 })();
 </script>
+
+<script>
+/* ===================== CUBE RUSH ===================== */
+const CUBERUSH = (function() {
+  const canvas = document.getElementById("cr-canvas");
+  const ctx = canvas.getContext("2d");
+  const gameScreenEl = document.getElementById("screen-cuberush");
+  const overlay = document.getElementById("cr-overlay");
+  const playBtn = document.getElementById("cr-play-btn");
+  const changeLevelBtn = document.getElementById("cr-change-level-btn");
+  const scoreEl = document.getElementById("cr-score");
+  const bestEl = document.getElementById("cr-best");
+  const hudLevelEl = document.getElementById("cr-hud-level");
+  const introMsg = document.getElementById("cr-intro-msg");
+  const deathMsg = document.getElementById("cr-death-msg");
+
+  const LEVELS = {
+    facile:   { label:'Facile',    baseSpeed:4.6, gravity:0.72, jumpForce:-12.6, gapMin:300, gapMax:480, doubleChance:0.10, ramp:0.03 },
+    normal:   { label:'Normal',    baseSpeed:6,   gravity:0.85, jumpForce:-14.5, gapMin:220, gapMax:400, doubleChance:0.22, ramp:0.05 },
+    difficile:{ label:'Difficile', baseSpeed:7.6, gravity:0.98, jumpForce:-15.8, gapMin:150, gapMax:290, doubleChance:0.34, ramp:0.07 }
+  };
+  let currentLevel = "normal";
+  let bests = Store.get("cuberush_bests", { facile: 0, normal: 0, difficile: 0 });
+
+  function refreshBestLabels() {
+    ["facile", "normal", "difficile"].forEach(lv => {
+      const el = document.getElementById("cr-best-" + lv);
+      if (el) el.textContent = "Meilleur : " + (bests[lv] || 0);
+    });
+  }
+  refreshBestLabels();
+
+  document.querySelectorAll(".cr-level-card").forEach(card => {
+    card.addEventListener("click", () => {
+      currentLevel = card.dataset.level;
+      showScreen("screen-cuberush");
+      startGame();
+    });
+  });
+
+  changeLevelBtn.addEventListener("click", () => {
+    state.running = false;
+    showScreen("screen-cuberush-levels");
+  });
+
+  let W, H, DPR, groundY = 0;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = canvas.clientWidth;
+    H = canvas.clientHeight;
+    if (W === 0 || H === 0) return;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    groundY = H * 0.72;
+  }
+  window.addEventListener("resize", resize);
+
+  const state = {
+    running: false,
+    started: false,
+    speed: 6,
+    baseSpeed: 6,
+    gravity: 0.85,
+    jumpForce: -14.5,
+    gapMin: 220, gapMax: 400, doubleChance: 0.22, ramp: 0.05,
+    score: 0,
+    obstacles: [],
+    particles: [],
+    distSinceSpawn: 0,
+    nextSpawnGap: 0,
+    time: 0
+  };
+
+  const player = { x: 0, y: 0, size: 34, vy: 0, rot: 0, onGround: true, trail: [] };
+
+  function applyLevel(levelKey) {
+    const cfg = LEVELS[levelKey];
+    state.baseSpeed = cfg.baseSpeed;
+    state.gravity = cfg.gravity;
+    state.jumpForce = cfg.jumpForce;
+    state.gapMin = cfg.gapMin;
+    state.gapMax = cfg.gapMax;
+    state.doubleChance = cfg.doubleChance;
+    state.ramp = cfg.ramp;
+    hudLevelEl.textContent = "Niveau : " + cfg.label;
+    bestEl.textContent = bests[levelKey] || 0;
+  }
+
+  function resetGame() {
+    applyLevel(currentLevel);
+    state.speed = state.baseSpeed;
+    state.score = 0;
+    state.obstacles = [];
+    state.particles = [];
+    state.distSinceSpawn = 0;
+    state.nextSpawnGap = 260;
+    state.time = 0;
+    player.x = W * 0.22;
+    player.y = groundY - player.size;
+    player.vy = 0;
+    player.rot = 0;
+    player.onGround = true;
+    player.trail = [];
+    scoreEl.textContent = "0";
+  }
+
+  function jump() {
+    if (!state.running) return;
+    if (player.onGround) {
+      player.vy = state.jumpForce;
+      player.onGround = false;
+    }
+  }
+
+  function spawnObstacle() {
+    const double = Math.random() < state.doubleChance;
+    const spikeW = 34;
+    const spikeH = 34 + Math.random() * 18;
+    state.obstacles.push({
+      x: W + 20,
+      w: double ? spikeW * 2 - 6 : spikeW,
+      h: spikeH,
+      double: double
+    });
+    state.nextSpawnGap = state.gapMin + Math.random() * (state.gapMax - state.gapMin);
+  }
+
+  function rectVsTriangle(px, py, pw, ph, ox, oy, ow, oh) {
+    const left = ox, right = ox + ow, bottom = oy, top = oy - oh;
+    const pLeft = px, pRight = px + pw, pTop = py, pBottom = py + ph;
+    if (pRight < left || pLeft > right || pBottom < top || pTop > bottom) return false;
+    const shrinkX = ow * 0.18;
+    const shrinkY = oh * 0.15;
+    const nLeft = left + shrinkX, nRight = right - shrinkX, nTop = top + shrinkY;
+    return !(pRight < nLeft || pLeft > nRight || pBottom < nTop || pTop > bottom);
+  }
+
+  function update(dt) {
+    state.time += dt;
+    state.score += dt * 0.06 * (state.speed / state.baseSpeed);
+    scoreEl.textContent = Math.floor(state.score);
+
+    state.speed = state.baseSpeed + Math.min(state.time * state.ramp, 5.5);
+
+    player.vy += state.gravity;
+    player.y += player.vy;
+    if (player.y + player.size >= groundY) {
+      player.y = groundY - player.size;
+      if (!player.onGround) spawnParticles(player.x + player.size / 2, groundY, 6);
+      player.vy = 0;
+      player.onGround = true;
+    }
+    if (player.onGround) {
+      player.rot = Math.round(player.rot / 90) * 90;
+    } else {
+      player.rot += 9;
+    }
+
+    player.trail.push({ x: player.x + player.size / 2, y: player.y + player.size / 2, life: 1 });
+    if (player.trail.length > 14) player.trail.shift();
+    player.trail.forEach(t => t.life -= 0.07);
+
+    state.distSinceSpawn += state.speed;
+    if (state.distSinceSpawn > state.nextSpawnGap) {
+      state.distSinceSpawn = 0;
+      spawnObstacle();
+    }
+    for (let i = state.obstacles.length - 1; i >= 0; i--) {
+      const o = state.obstacles[i];
+      o.x -= state.speed;
+      if (o.x + o.w < -10) { state.obstacles.splice(i, 1); continue; }
+      if (rectVsTriangle(player.x, player.y, player.size, player.size, o.x, groundY, o.w, o.h)) {
+        gameOver();
+        return;
+      }
+    }
+
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const p = state.particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life -= 0.04;
+      if (p.life <= 0) state.particles.splice(i, 1);
+    }
+  }
+
+  function spawnParticles(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      state.particles.push({
+        x, y, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 1,
+        color: Math.random() < 0.5 ? "#ff2e63" : "#00f5d4"
+      });
+    }
+  }
+
+  function drawGrid() {
+    ctx.save();
+    ctx.strokeStyle = "rgba(58,31,107,0.5)";
+    ctx.lineWidth = 1;
+    const offset = (state.time * state.speed * 1.2) % 40;
+    for (let x = -offset; x < W; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, groundY); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawTri(x, baseY, w, h) {
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.lineTo(x + w / 2, baseY - h);
+    ctx.lineTo(x + w, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    drawGrid();
+
+    ctx.save();
+    ctx.strokeStyle = "#00f5d4";
+    ctx.shadowColor = "#00f5d4";
+    ctx.shadowBlur = 14;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke();
+    ctx.restore();
+
+    player.trail.forEach(t => {
+      if (t.life <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = Math.max(t.life, 0) * 0.5;
+      ctx.fillStyle = "#ff2e63";
+      ctx.beginPath(); ctx.arc(t.x, t.y, player.size * 0.28, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+
+    state.obstacles.forEach(o => {
+      ctx.save();
+      ctx.fillStyle = "#ffd23f";
+      ctx.shadowColor = "#ffd23f";
+      ctx.shadowBlur = 10;
+      if (o.double) {
+        const half = o.w / 2 + 3;
+        drawTri(o.x, groundY, half, o.h);
+        drawTri(o.x + half, groundY, half, o.h);
+      } else {
+        drawTri(o.x, groundY, o.w, o.h);
+      }
+      ctx.restore();
+    });
+
+    state.particles.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(p.life, 0);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+      ctx.restore();
+    });
+
+    ctx.save();
+    const cx = player.x + player.size / 2, cy = player.y + player.size / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(player.rot * Math.PI / 180);
+    ctx.shadowColor = "#ff2e63";
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = "#ff2e63";
+    ctx.fillRect(-player.size / 2, -player.size / 2, player.size, player.size);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-player.size / 2, -player.size / 2, player.size, player.size);
+    ctx.restore();
+  }
+
+  let rafId = null, lastTime = 0;
+  function loop(ts) {
+    if (!lastTime) lastTime = ts;
+    const dt = Math.min((ts - lastTime) / 16.67, 2.5);
+    lastTime = ts;
+    if (state.running) update(dt);
+    if (gameScreenEl.classList.contains("active")) draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function gameOver() {
+    state.running = false;
+    const finalScore = Math.floor(state.score);
+    if (finalScore > (bests[currentLevel] || 0)) {
+      bests[currentLevel] = finalScore;
+      Store.set("cuberush_bests", bests);
+    }
+    bestEl.textContent = bests[currentLevel] || 0;
+    refreshBestLabels();
+    spawnParticles(player.x + player.size / 2, player.y + player.size / 2, 20);
+    introMsg.style.display = "none";
+    deathMsg.style.display = "block";
+    deathMsg.textContent = "Écrasé ! Score : " + finalScore + ".";
+    playBtn.textContent = "REJOUER";
+    changeLevelBtn.style.display = "inline-block";
+    overlay.classList.remove("hidden");
+  }
+
+  function startGame() {
+    resize();
+    resetGame();
+    overlay.classList.add("hidden");
+    introMsg.style.display = "block";
+    deathMsg.style.display = "none";
+    playBtn.textContent = "JOUER";
+    changeLevelBtn.style.display = "none";
+    state.running = true;
+    state.started = true;
+  }
+
+  playBtn.addEventListener("click", () => startGame());
+
+  function onCanvasTap(e) {
+    if (!state.running && state.started) return;
+    if (state.running) { e.preventDefault(); jump(); }
+  }
+  canvas.addEventListener("pointerdown", onCanvasTap);
+  canvas.addEventListener("touchstart", onCanvasTap, { passive: false });
+
+  return {
+    handleKey(key) {
+      if (key === " ") {
+        if (!state.running) startGame();
+        else jump();
+      }
+    },
+    pause() {
+      state.running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    },
+    resume() {
+      resize();
+      lastTime = 0;
+      if (!rafId) rafId = requestAnimationFrame(loop);
+    }
+  };
+})();
+</script>
+
 <script>
 /* ===================== Global key + navigation wiring ===================== */
 (function() {
   const GAME_MAP = {
     'screen-snake': SNAKE,
     'screen-tetris': TETRIS,
-    'screen-flappy': FLAPPY
+    'screen-flappy': FLAPPY,
+    'screen-cuberush': CUBERUSH
   };
 
   document.querySelectorAll('[data-back]').forEach(btn => {
