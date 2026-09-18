@@ -707,6 +707,78 @@
     font-size: 0.8rem;
     padding: 9px 22px;
   }
+  .admin-modal-box { max-width: 480px; }
+  .admin-refresh-btn { width: 100%; margin-bottom: 14px; }
+  .admin-row {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: var(--cell-bg);
+  }
+  .admin-row-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    word-break: break-all;
+  }
+  .admin-badge-banned {
+    background: #ff2e63;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .admin-row-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+    word-break: break-all;
+  }
+  .admin-row-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .admin-row-actions button {
+    flex: 1 1 auto;
+    padding: 7px 8px;
+    font-size: 0.72rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--cell-bg-hover);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .admin-row-actions button:hover { filter: brightness(1.1); }
+  .admin-edit-box {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+    min-height: 120px;
+    font-family: monospace;
+    font-size: 0.72rem;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+  }
+  .admin-save-btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent-4);
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -757,6 +829,7 @@
       <a class="discord-btn" href="https://discord.gg/vRw2ff4Bp" target="_blank" rel="noopener noreferrer">💬 Discord</a>
       <button class="update-btn" id="update-open-btn">🆕 Mises à jour</button>
       <button class="update-btn" id="auth-open-btn">🔐 Connexion</button>
+      <button class="update-btn" id="admin-open-btn" style="display:none;">🛡️ Admin</button>
     </div>
   </div>
 
@@ -787,6 +860,19 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL ADMIN ===================== -->
+  <div class="modal-overlay" id="admin-modal">
+    <div class="modal-box admin-modal-box">
+      <div class="modal-header">
+        <h2>🛡️ Administration</h2>
+        <button class="modal-close" id="admin-close-btn">✕</button>
+      </div>
+      <div class="profile-note">Gère les comptes joueurs : avertir, bannir/débannir, ou modifier leurs données directement.</div>
+      <button class="update-btn admin-refresh-btn" id="admin-refresh-btn">🔄 Actualiser la liste</button>
+      <div id="admin-list"></div>
+    </div>
+  </div>
+
   <!-- ===================== MODAL PROFIL ===================== -->
   <div class="modal-overlay" id="profile-modal">
     <div class="modal-box">
@@ -809,6 +895,16 @@
       <div class="modal-header">
         <h2>🆕 Mises à jour</h2>
         <button class="modal-close" id="update-close-btn">✕</button>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-title">Panel Admin</div>
+        <ul class="changelog-list">
+          <li>Nouveau panel de gestion des comptes, réservé à l'administrateur du site</li>
+          <li>Avertir un joueur (message affiché à sa prochaine connexion)</li>
+          <li>Bannir / débannir un compte (empêche toute sauvegarde tant qu'il est banni)</li>
+          <li>Modifier directement les données sauvegardées d'un compte</li>
+        </ul>
       </div>
 
       <div class="changelog-entry">
@@ -1320,6 +1416,8 @@ const Store = {
 
 <script>
 /* ===================== Authentification (compte en ligne) ===================== */
+const ADMIN_UID = "SdNTPGxPWucplUYHTQMQh0hQwCk1";
+
 (function() {
   const openBtn = document.getElementById("auth-open-btn");
   const closeBtn = document.getElementById("auth-close-btn");
@@ -1334,6 +1432,7 @@ const Store = {
   const loggedInView = document.getElementById("auth-logged-in");
   const currentEmailEl = document.getElementById("auth-current-email");
   const logoutBtn = document.getElementById("auth-logout");
+  const adminOpenBtn = document.getElementById("admin-open-btn");
 
   let mode = "login"; // ou "signup"
 
@@ -1357,6 +1456,31 @@ const Store = {
       loggedOutView.style.display = "block";
       loggedInView.style.display = "none";
       openBtn.textContent = "🔐 Connexion";
+    }
+    adminOpenBtn.style.display = (uid === ADMIN_UID) ? "block" : "none";
+  }
+
+  async function checkAccountStatus() {
+    const uid = getActiveUid();
+    if (!fbReady || !uid) return;
+    try {
+      const doc = await fbDb.collection("profiles").doc(uid).get();
+      if (!doc.exists) return;
+      const data = doc.data();
+      if (data.banned) {
+        alert("Ton compte a été banni." + (data.banReason ? ("\n\nRaison : " + data.banReason) : ""));
+        try { await fbAuth.signOut(); } catch(e) {}
+        localStorage.removeItem(UID_KEY);
+        localStorage.removeItem(EMAIL_KEY);
+        location.reload();
+        return;
+      }
+      if (data.warning) {
+        alert("⚠️ Avertissement de l'administrateur :\n\n" + data.warning);
+        fbDb.collection("profiles").doc(uid).update({ warning: firebase.firestore.FieldValue.delete() }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn("Vérification du statut du compte impossible :", e);
     }
   }
 
@@ -1419,6 +1543,17 @@ const Store = {
         }
       }
 
+      try {
+        const profileUpdate = { email: email, lastLogin: Date.now() };
+        if (mode === "signup") {
+          profileUpdate.createdAt = Date.now();
+          profileUpdate.banned = false;
+        }
+        await fbDb.collection("profiles").doc(uid).set(profileUpdate, { merge: true });
+      } catch (writeErr) {
+        console.warn("Écriture du profil impossible :", writeErr);
+      }
+
       localStorage.setItem(UID_KEY, uid);
       localStorage.setItem(EMAIL_KEY, email);
       location.reload();
@@ -1442,6 +1577,126 @@ const Store = {
 
   setMode("login");
   refreshView();
+  checkAccountStatus();
+})();
+</script>
+
+<script>
+/* ===================== Panel Admin ===================== */
+(function() {
+  const openBtn = document.getElementById("admin-open-btn");
+  const closeBtn = document.getElementById("admin-close-btn");
+  const modal = document.getElementById("admin-modal");
+  const refreshBtn = document.getElementById("admin-refresh-btn");
+  const listEl = document.getElementById("admin-list");
+
+  function isAdmin() { return fbReady && getActiveUid() === ADMIN_UID; }
+
+  openBtn.addEventListener("click", () => {
+    if (!isAdmin()) return;
+    modal.classList.add("visible");
+    loadUsers();
+  });
+  closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
+  refreshBtn.addEventListener("click", loadUsers);
+
+  async function loadUsers() {
+    if (!isAdmin()) return;
+    listEl.innerHTML = "<p style='color:var(--muted); font-size:0.8rem;'>Chargement…</p>";
+    try {
+      const snap = await fbDb.collection("profiles").get();
+      listEl.innerHTML = "";
+      if (snap.empty) {
+        listEl.innerHTML = "<p style='color:var(--muted); font-size:0.8rem;'>Aucun compte.</p>";
+        return;
+      }
+      snap.forEach(doc => listEl.appendChild(buildRow(doc.id, doc.data() || {})));
+    } catch (e) {
+      listEl.innerHTML = "<p style='color:#f87171; font-size:0.8rem;'>Erreur : " + e.message + "</p>";
+    }
+  }
+
+  function buildRow(uid, data) {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+
+    const head = document.createElement("div");
+    head.className = "admin-row-head";
+    head.innerHTML = "<strong>" + (data.email || "(sans e-mail)") + "</strong>" +
+      (data.banned ? ' <span class="admin-badge-banned">Banni</span>' : "");
+    row.appendChild(head);
+
+    const sub = document.createElement("div");
+    sub.className = "admin-row-sub";
+    sub.textContent = "UID : " + uid;
+    row.appendChild(sub);
+
+    const actions = document.createElement("div");
+    actions.className = "admin-row-actions";
+
+    const warnBtn = document.createElement("button");
+    warnBtn.textContent = "⚠️ Avertir";
+    warnBtn.addEventListener("click", async () => {
+      const msg = prompt("Message d'avertissement pour " + (data.email || uid) + " :");
+      if (!msg) return;
+      try {
+        await fbDb.collection("profiles").doc(uid).set({ warning: msg }, { merge: true });
+        alert("Avertissement envoyé. Il s'affichera à sa prochaine connexion.");
+      } catch (e) { alert("Erreur : " + e.message); }
+    });
+
+    const banBtn = document.createElement("button");
+    banBtn.textContent = data.banned ? "✅ Débannir" : "⛔ Bannir";
+    banBtn.addEventListener("click", async () => {
+      try {
+        if (!data.banned) {
+          const reason = prompt("Raison du bannissement (optionnel) :") || "";
+          await fbDb.collection("profiles").doc(uid).set({ banned: true, banReason: reason }, { merge: true });
+        } else {
+          await fbDb.collection("profiles").doc(uid).set({ banned: false, banReason: firebase.firestore.FieldValue.delete() }, { merge: true });
+        }
+        loadUsers();
+      } catch (e) { alert("Erreur : " + e.message); }
+    });
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️ Modifier";
+    editBtn.addEventListener("click", () => {
+      const showing = box.style.display !== "none";
+      box.style.display = showing ? "none" : "block";
+      saveBtn.style.display = showing ? "none" : "block";
+    });
+
+    actions.appendChild(warnBtn);
+    actions.appendChild(banBtn);
+    actions.appendChild(editBtn);
+    row.appendChild(actions);
+
+    const box = document.createElement("textarea");
+    box.className = "admin-edit-box";
+    box.style.display = "none";
+    box.value = JSON.stringify(data, null, 2);
+    row.appendChild(box);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "admin-save-btn";
+    saveBtn.style.display = "none";
+    saveBtn.textContent = "💾 Enregistrer les modifications";
+    saveBtn.addEventListener("click", async () => {
+      let parsed;
+      try { parsed = JSON.parse(box.value); }
+      catch (e) { alert("JSON invalide : " + e.message); return; }
+      try {
+        await fbDb.collection("profiles").doc(uid).set(parsed);
+        alert("Modifications enregistrées.");
+        loadUsers();
+      } catch (e) { alert("Erreur : " + e.message); }
+    });
+    row.appendChild(saveBtn);
+
+    return row;
+  }
 })();
 </script>
 
