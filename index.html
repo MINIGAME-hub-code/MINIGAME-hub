@@ -898,6 +898,14 @@
       </div>
 
       <div class="changelog-entry">
+        <div class="changelog-title">Cube Rush plus nerveux + chat ultime accessible plus tôt</div>
+        <ul class="changelog-list">
+          <li>Cube Rush : suppression du délai entre chaque saut, tu peux désormais resauter instantanément à chaque clic</li>
+          <li>Chat Clicker : le chat ultime 🐱👑✨ se débloque maintenant à 50 000 000 de clics au lieu de 1 milliard</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
         <div class="changelog-title">Panel Admin</div>
         <ul class="changelog-list">
           <li>Nouveau panel de gestion des comptes, réservé à l'administrateur du site</li>
@@ -2573,10 +2581,8 @@ const CUBERUSH = (function() {
 
   function jump() {
     if (!state.running) return;
-    if (player.onGround) {
-      player.vy = state.jumpForce;
-      player.onGround = false;
-    }
+    player.vy = state.jumpForce;
+    player.onGround = false;
   }
 
   function spawnObstacle() {
@@ -2903,7 +2909,7 @@ const CUBERUSH = (function() {
     { t: 500000,  emoji: "🐆" },
     { t: 750000,  emoji: "🦁" },
     { t: 1000000, emoji: "🐱👑" },
-    { t: 1000000000, emoji: "🐱👑✨" }
+    { t: 50000000, emoji: "🐱👑✨" }
   ];
 
   function stageIndexFor(n) {
