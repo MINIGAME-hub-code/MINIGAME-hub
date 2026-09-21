@@ -898,6 +898,14 @@
       </div>
 
       <div class="changelog-entry">
+        <div class="changelog-title">Correctif Cube Rush</div>
+        <ul class="changelog-list">
+          <li>Correction d'un bug qui envoyait le cube hors de l'écran quand on sautait plusieurs fois d'affilée</li>
+          <li>Correction d'un double saut déclenché par un seul appui sur mobile</li>
+        </ul>
+      </div>
+
+      <div class="changelog-entry">
         <div class="changelog-title">Cube Rush plus nerveux + chat ultime accessible plus tôt</div>
         <ul class="changelog-list">
           <li>Cube Rush : suppression du délai entre chaque saut, tu peux désormais resauter instantanément à chaque clic</li>
@@ -1111,6 +1119,7 @@
     <div class="clicker-wrap">
       <button id="clicker-cat" class="clicker-cat">🐱</button>
     </div>
+    <button id="clicker-admin-gift" class="upgrade-buy" style="display:none; margin: 6px auto 0;">🎁 S'offrir des clics (admin)</button>
     <div class="score-row">
       <div>Disponibles <span class="value" id="clicker-bank">0</span></div>
       <div>Total <span class="value" id="clicker-count">0</span></div>
@@ -1200,6 +1209,7 @@
       <div>Score <span class="value" id="cr-score">0</span></div>
       <div>Record <span class="value" id="cr-best">0</span></div>
     </div>
+    <button id="cr-admin-edit-best" class="cr-overlay-btn cr-secondary" style="display:none; margin: 10px auto 0;">✏️ Modifier le record (admin)</button>
   </div>
 
 </div>
@@ -1424,7 +1434,7 @@ const Store = {
 
 <script>
 /* ===================== Authentification (compte en ligne) ===================== */
-const ADMIN_UID = "SdNTPGxPWucplUYHTQMQh0hQwCk1";
+const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC3"];
 
 (function() {
   const openBtn = document.getElementById("auth-open-btn");
@@ -1465,7 +1475,7 @@ const ADMIN_UID = "SdNTPGxPWucplUYHTQMQh0hQwCk1";
       loggedInView.style.display = "none";
       openBtn.textContent = "🔐 Connexion";
     }
-    adminOpenBtn.style.display = (uid === ADMIN_UID) ? "block" : "none";
+    adminOpenBtn.style.display = ADMIN_UIDS.includes(uid) ? "block" : "none";
   }
 
   async function checkAccountStatus() {
@@ -1598,7 +1608,8 @@ const ADMIN_UID = "SdNTPGxPWucplUYHTQMQh0hQwCk1";
   const refreshBtn = document.getElementById("admin-refresh-btn");
   const listEl = document.getElementById("admin-list");
 
-  function isAdmin() { return fbReady && getActiveUid() === ADMIN_UID; }
+  function isAdmin() { return fbReady && ADMIN_UIDS.includes(getActiveUid()); }
+  window.isAdmin = isAdmin;
 
   openBtn.addEventListener("click", () => {
     if (!isAdmin()) return;
@@ -2487,6 +2498,7 @@ const CUBERUSH = (function() {
   const hudLevelEl = document.getElementById("cr-hud-level");
   const introMsg = document.getElementById("cr-intro-msg");
   const deathMsg = document.getElementById("cr-death-msg");
+  const adminEditBestBtn = document.getElementById("cr-admin-edit-best");
 
   const LEVELS = {
     facile:   { label:'Facile',    baseSpeed:4.6, gravity:0.72, jumpForce:-12.6, gapMin:300, gapMax:480, doubleChance:0.10, ramp:0 },
@@ -2501,8 +2513,21 @@ const CUBERUSH = (function() {
       const el = document.getElementById("cr-best-" + lv);
       if (el) el.textContent = "Meilleur : " + (bests[lv] || 0);
     });
+    adminEditBestBtn.style.display = (typeof window.isAdmin === "function" && window.isAdmin()) ? "block" : "none";
   }
   refreshBestLabels();
+
+  adminEditBestBtn.addEventListener("click", () => {
+    if (!(typeof window.isAdmin === "function" && window.isAdmin())) return;
+    const raw = prompt("Nouveau record pour le niveau \"" + LEVELS[currentLevel].label + "\" :", String(bests[currentLevel] || 0));
+    if (raw === null) return;
+    const value = Number(raw.replace(/\s/g, "").replace(",", "."));
+    if (!Number.isFinite(value) || value < 0) { alert("Nombre invalide."); return; }
+    bests[currentLevel] = Math.floor(value);
+    Store.set("cuberush_bests", bests);
+    bestEl.textContent = bests[currentLevel];
+    refreshBestLabels();
+  });
 
   document.querySelectorAll(".cr-level-card").forEach(card => {
     card.addEventListener("click", () => {
@@ -2559,6 +2584,7 @@ const CUBERUSH = (function() {
     state.ramp = cfg.ramp;
     hudLevelEl.textContent = "Niveau : " + cfg.label;
     bestEl.textContent = bests[levelKey] || 0;
+    adminEditBestBtn.style.display = (typeof window.isAdmin === "function" && window.isAdmin()) ? "block" : "none";
   }
 
   function resetGame() {
@@ -2576,11 +2602,17 @@ const CUBERUSH = (function() {
     player.rot = 0;
     player.onGround = true;
     player.trail = [];
+    lastJumpTs = 0;
     scoreEl.textContent = "0";
   }
 
+  let lastJumpTs = 0;
   function jump() {
     if (!state.running) return;
+    if (!player.onGround) return;
+    const now = performance.now();
+    if (now - lastJumpTs < 100) return;
+    lastJumpTs = now;
     player.vy = state.jumpForce;
     player.onGround = false;
   }
@@ -2617,6 +2649,10 @@ const CUBERUSH = (function() {
 
     player.vy += state.gravity;
     player.y += player.vy;
+    if (player.y < 0) {
+      player.y = 0;
+      if (player.vy < 0) player.vy = 0;
+    }
     if (player.y + player.size >= groundY) {
       player.y = groundY - player.size;
       if (!player.onGround) spawnParticles(player.x + player.size / 2, groundY, 6);
@@ -2789,7 +2825,6 @@ const CUBERUSH = (function() {
     if (state.running) { e.preventDefault(); jump(); }
   }
   canvas.addEventListener("pointerdown", onCanvasTap);
-  canvas.addEventListener("touchstart", onCanvasTap, { passive: false });
 
   return {
     handleKey(key) {
@@ -2925,6 +2960,7 @@ const CUBERUSH = (function() {
   const GROWTH = 1.15;
 
   const catBtn = document.getElementById("clicker-cat");
+  const adminGiftBtn = document.getElementById("clicker-admin-gift");
   const bankEl = document.getElementById("clicker-bank");
   const countEl = document.getElementById("clicker-count");
   const stageEl = document.getElementById("clicker-stage");
@@ -2973,6 +3009,7 @@ const CUBERUSH = (function() {
   }
 
   function render() {
+    adminGiftBtn.style.display = (typeof window.isAdmin === "function" && window.isAdmin()) ? "block" : "none";
     const stageIndex = stageIndexFor(total);
     catBtn.textContent = STAGES[stageIndex].emoji;
     bankEl.textContent = format(bank);
@@ -3022,6 +3059,15 @@ const CUBERUSH = (function() {
   }
 
   catBtn.addEventListener("click", () => gain(clickPower()));
+
+  adminGiftBtn.addEventListener("click", () => {
+    if (!(typeof window.isAdmin === "function" && window.isAdmin())) return;
+    const raw = prompt("Combien de clics veux-tu t'offrir ? (peut être négatif)", "1000000");
+    if (raw === null) return;
+    const amount = Number(raw.replace(/\s/g, "").replace(",", "."));
+    if (!Number.isFinite(amount)) { alert("Nombre invalide."); return; }
+    gain(amount);
+  });
 
   autoBuyBtn.addEventListener("click", () => {
     const cost = autoCost();
