@@ -869,6 +869,7 @@
       </div>
       <div class="profile-note">Gère les comptes joueurs : avertir, bannir/débannir, ou modifier leurs données directement.</div>
       <button class="update-btn admin-refresh-btn" id="admin-refresh-btn">🔄 Actualiser la liste</button>
+      <button class="update-btn admin-refresh-btn" id="admin-reset-all-btn" style="background:#c0392b; border-color:#e74c3c;">🗑️ Réinitialiser TOUS les records (tous les comptes)</button>
       <div id="admin-list"></div>
     </div>
   </div>
@@ -1606,6 +1607,7 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   const closeBtn = document.getElementById("admin-close-btn");
   const modal = document.getElementById("admin-modal");
   const refreshBtn = document.getElementById("admin-refresh-btn");
+  const resetAllBtn = document.getElementById("admin-reset-all-btn");
   const listEl = document.getElementById("admin-list");
 
   function isAdmin() { return fbReady && ADMIN_UIDS.includes(getActiveUid()); }
@@ -1619,6 +1621,47 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
   modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
   refreshBtn.addEventListener("click", loadUsers);
+
+  const RESET_FIELDS = {
+    cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
+    snake_best: 0,
+    flappy_best: 0,
+    clicker_total: 0,
+    clicker_count: 0,
+    clicker_bank: 0,
+    clicker_auto_level: 0,
+    clicker_power_level: 0,
+    clicker_megapower_level: 0
+  };
+
+  resetAllBtn.addEventListener("click", async () => {
+    if (!isAdmin()) return;
+    const sure = confirm("⚠️ Ceci va réinitialiser les records Cube Rush, Snake, Flappy et Chat Clicker de TOUS les comptes inscrits. Action IRRÉVERSIBLE. Continuer ?");
+    if (!sure) return;
+    const typed = prompt("Pour confirmer, tape RESET en majuscules :");
+    if (typed !== "RESET") { alert("Réinitialisation annulée."); return; }
+
+    const originalLabel = resetAllBtn.textContent;
+    resetAllBtn.disabled = true;
+    resetAllBtn.textContent = "⏳ Réinitialisation en cours…";
+    try {
+      const snap = await fbDb.collection("profiles").get();
+      const docs = snap.docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = fbDb.batch();
+        docs.slice(i, i + 400).forEach(d => batch.set(d.ref, RESET_FIELDS, { merge: true }));
+        await batch.commit();
+      }
+      Object.keys(RESET_FIELDS).forEach(k => Store.set(k, RESET_FIELDS[k]));
+      alert("✅ Records réinitialisés pour " + docs.length + " compte(s).");
+      loadUsers();
+    } catch (err) {
+      alert("❌ Erreur pendant la réinitialisation : " + err.message);
+    } finally {
+      resetAllBtn.disabled = false;
+      resetAllBtn.textContent = originalLabel;
+    }
+  });
 
   async function loadUsers() {
     if (!isAdmin()) return;
