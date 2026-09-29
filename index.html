@@ -817,10 +817,14 @@
 
     /* Cube Rush : agrandi visuellement (la taille est calculée dans le JS) */
     .cr-canvas-wrap {
+      width: var(--cr-w, 340px);
+      max-width: none;
       transform: scale(var(--cr-scale, 1));
       transform-origin: top center;
       margin-bottom: calc(420px * (var(--cr-scale, 1) - 1));
     }
+
+    #cr-canvas { max-width: none; }
 
     /* Chat Clicker */
     .clicker-cat { font-size: 10rem; }
@@ -2601,12 +2605,18 @@ const CUBERUSH = (function() {
 
   let W, H, DPR, groundY = 0;
   function resize() {
+    const wide = window.innerWidth >= 900;
+    const crW = wide ? 700 : 340;
     let crScale = 1;
-    if (window.innerWidth >= 900) {
-      const fit = Math.min((window.innerWidth - 100) / 340, (window.innerHeight - 290) / 420);
+    if (wide) {
+      const fit = Math.min((window.innerWidth - 100) / crW, (window.innerHeight - 290) / 420);
       crScale = Math.max(1, Math.min(fit, 3));
     }
-    canvas.parentElement.style.setProperty("--cr-scale", crScale);
+    const wrapEl = canvas.parentElement;
+    wrapEl.style.setProperty("--cr-w", crW + "px");
+    wrapEl.style.setProperty("--cr-scale", crScale);
+    const screenEl = canvas.closest(".screen");
+    if (screenEl) screenEl.style.maxWidth = wide ? Math.round(Math.max(crW * crScale, 780)) + "px" : "";
     DPR = Math.min(Math.min(window.devicePixelRatio || 1, 2) * crScale, 4);
     W = canvas.clientWidth;
     H = canvas.clientHeight;
