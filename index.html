@@ -782,43 +782,59 @@
 
   /* ===================== Version PC (écrans larges) ===================== */
   @media (min-width: 900px) {
-    body { padding: 40px 0 60px; }
-    .app { max-width: 980px; }
+    :root { --game-size: clamp(320px, calc(100vh - 300px), 760px); }
+    body { padding: 3vh 0 40px; }
+    .app { max-width: 1500px; padding: 0 48px; }
 
-    /* Menu : 3 colonnes, cartes plus grandes */
-    .hub-title { font-size: 2.8rem; }
-    .hub-subtitle { font-size: 1.05rem; margin-bottom: 34px; }
-    .game-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    /* Menu : 3 colonnes qui occupent la largeur */
+    .hub-title { font-size: 3.6rem; margin-bottom: 6px; }
+    .profile-bar { font-size: 1rem; }
+    .hub-subtitle { font-size: 1.2rem; margin-bottom: 4vh; }
+    .game-grid { grid-template-columns: repeat(3, 1fr); gap: 28px; }
     .game-card[style*="grid-column"] { grid-column: auto !important; }
-    .game-card { padding: 34px 16px; border-radius: 22px; }
-    .game-card:hover { transform: translateY(-4px); }
-    .game-card .icon { font-size: 3.4rem; margin-bottom: 12px; }
-    .game-card .name { font-size: 1.15rem; }
-    .game-card .tag { font-size: 0.85rem; }
-    .footer-btns { max-width: 640px; margin: 30px auto 0; }
+    .game-card { padding: clamp(28px, 6.5vh, 64px) 20px; border-radius: 26px; }
+    .game-card:hover { transform: translateY(-5px); }
+    .game-card .icon { font-size: clamp(3.4rem, 8vh, 5.2rem); margin-bottom: 14px; }
+    .game-card .name { font-size: 1.5rem; }
+    .game-card .tag { font-size: 1.05rem; margin-top: 4px; }
+    .footer-btns { max-width: 900px; margin: 4vh auto 0; gap: 16px; }
+    .discord-btn, .update-btn, .footer-btns > * { font-size: 1.05rem; padding-top: 16px; padding-bottom: 16px; }
 
-    /* Écrans de jeu : colonne centrée plus large */
-    .screen:not(#screen-menu) { max-width: 620px; margin: 0 auto; }
-    .game-title { font-size: 1.6rem; }
+    /* Écrans de jeu : colonne centrée */
+    .screen:not(#screen-menu) { max-width: 780px; margin: 0 auto; }
+    .game-title { font-size: 1.8rem; }
+    .subtitle { font-size: 1.1rem; }
 
     /* Morpion */
-    .board { max-width: 440px; gap: 14px; }
-    .cell { font-size: 3.6rem; }
+    .board { max-width: clamp(320px, calc(100vh - 380px), 560px); gap: 16px; }
+    .cell { font-size: 4rem; }
 
-    /* Canvas agrandis (la logique de jeu ne change pas) */
-    #snake-canvas { width: 480px; height: 480px; }
-    #tetris-canvas { width: 250px; height: 500px; }
-    #flappy-canvas { width: 360px; height: 480px; }
-    .cr-canvas-wrap { width: 580px; }
-    #cr-canvas { max-width: 580px; }
+    /* Canvas agrandis à la hauteur de la fenêtre (la logique de jeu ne change pas) */
+    #snake-canvas { width: var(--game-size); height: var(--game-size); }
+    #tetris-canvas { height: var(--game-size); width: calc(var(--game-size) / 2); }
+    #tetris-next { width: 120px; height: 120px; }
+    #flappy-canvas { height: var(--game-size); width: calc(var(--game-size) * 0.75); }
+
+    /* Cube Rush : agrandi visuellement (la taille est calculée dans le JS) */
+    .cr-canvas-wrap {
+      transform: scale(var(--cr-scale, 1));
+      transform-origin: top center;
+      margin-bottom: calc(420px * (var(--cr-scale, 1) - 1));
+    }
 
     /* Chat Clicker */
-    .clicker-cat { font-size: 9rem; }
-    .clicker-progress-outer { max-width: 440px; }
+    .clicker-cat { font-size: 10rem; }
+    .clicker-progress-outer { max-width: 520px; }
+    .upgrade-name { font-size: 1.05rem; }
+    .upgrade-desc, .upgrade-level { font-size: 0.86rem; }
 
     /* Fenêtres modales */
-    .modal-box { max-width: 460px; }
-    .admin-modal-box { max-width: 600px; }
+    .modal-box { max-width: 500px; }
+    .admin-modal-box { max-width: 640px; }
+  }
+  /* Souris + grand écran : les boutons fléchés à l'écran sont inutiles */
+  @media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+    .dpad { display: none; }
   }
 </style>
 </head>
@@ -2585,7 +2601,13 @@ const CUBERUSH = (function() {
 
   let W, H, DPR, groundY = 0;
   function resize() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let crScale = 1;
+    if (window.innerWidth >= 900) {
+      const fit = Math.min((window.innerWidth - 100) / 340, (window.innerHeight - 290) / 420);
+      crScale = Math.max(1, Math.min(fit, 3));
+    }
+    canvas.parentElement.style.setProperty("--cr-scale", crScale);
+    DPR = Math.min(Math.min(window.devicePixelRatio || 1, 2) * crScale, 4);
     W = canvas.clientWidth;
     H = canvas.clientHeight;
     if (W === 0 || H === 0) return;
