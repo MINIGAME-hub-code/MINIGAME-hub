@@ -779,6 +779,47 @@
     font-size: 0.78rem;
     cursor: pointer;
   }
+
+  /* ===================== Version PC (écrans larges) ===================== */
+  @media (min-width: 900px) {
+    body { padding: 40px 0 60px; }
+    .app { max-width: 980px; }
+
+    /* Menu : 3 colonnes, cartes plus grandes */
+    .hub-title { font-size: 2.8rem; }
+    .hub-subtitle { font-size: 1.05rem; margin-bottom: 34px; }
+    .game-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .game-card[style*="grid-column"] { grid-column: auto !important; }
+    .game-card { padding: 34px 16px; border-radius: 22px; }
+    .game-card:hover { transform: translateY(-4px); }
+    .game-card .icon { font-size: 3.4rem; margin-bottom: 12px; }
+    .game-card .name { font-size: 1.15rem; }
+    .game-card .tag { font-size: 0.85rem; }
+    .footer-btns { max-width: 640px; margin: 30px auto 0; }
+
+    /* Écrans de jeu : colonne centrée plus large */
+    .screen:not(#screen-menu) { max-width: 620px; margin: 0 auto; }
+    .game-title { font-size: 1.6rem; }
+
+    /* Morpion */
+    .board { max-width: 440px; gap: 14px; }
+    .cell { font-size: 3.6rem; }
+
+    /* Canvas agrandis (la logique de jeu ne change pas) */
+    #snake-canvas { width: 480px; height: 480px; }
+    #tetris-canvas { width: 250px; height: 500px; }
+    #flappy-canvas { width: 360px; height: 480px; }
+    .cr-canvas-wrap { width: 580px; }
+    #cr-canvas { max-width: 580px; }
+
+    /* Chat Clicker */
+    .clicker-cat { font-size: 9rem; }
+    .clicker-progress-outer { max-width: 440px; }
+
+    /* Fenêtres modales */
+    .modal-box { max-width: 460px; }
+    .admin-modal-box { max-width: 600px; }
+  }
 </style>
 </head>
 <body>
@@ -869,7 +910,6 @@
       </div>
       <div class="profile-note">Gère les comptes joueurs : avertir, bannir/débannir, ou modifier leurs données directement.</div>
       <button class="update-btn admin-refresh-btn" id="admin-refresh-btn">🔄 Actualiser la liste</button>
-      <button class="update-btn admin-refresh-btn" id="admin-reset-all-btn" style="background:#c0392b; border-color:#e74c3c;">🗑️ Réinitialiser TOUS les records (tous les comptes)</button>
       <div id="admin-list"></div>
     </div>
   </div>
@@ -1607,7 +1647,6 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   const closeBtn = document.getElementById("admin-close-btn");
   const modal = document.getElementById("admin-modal");
   const refreshBtn = document.getElementById("admin-refresh-btn");
-  const resetAllBtn = document.getElementById("admin-reset-all-btn");
   const listEl = document.getElementById("admin-list");
 
   function isAdmin() { return fbReady && ADMIN_UIDS.includes(getActiveUid()); }
@@ -1621,47 +1660,6 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
   modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
   refreshBtn.addEventListener("click", loadUsers);
-
-  const RESET_FIELDS = {
-    cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
-    snake_best: 0,
-    flappy_best: 0,
-    clicker_total: 0,
-    clicker_count: 0,
-    clicker_bank: 0,
-    clicker_auto_level: 0,
-    clicker_power_level: 0,
-    clicker_megapower_level: 0
-  };
-
-  resetAllBtn.addEventListener("click", async () => {
-    if (!isAdmin()) return;
-    const sure = confirm("⚠️ Ceci va réinitialiser les records Cube Rush, Snake, Flappy et Chat Clicker de TOUS les comptes inscrits. Action IRRÉVERSIBLE. Continuer ?");
-    if (!sure) return;
-    const typed = prompt("Pour confirmer, tape RESET en majuscules :");
-    if (typed !== "RESET") { alert("Réinitialisation annulée."); return; }
-
-    const originalLabel = resetAllBtn.textContent;
-    resetAllBtn.disabled = true;
-    resetAllBtn.textContent = "⏳ Réinitialisation en cours…";
-    try {
-      const snap = await fbDb.collection("profiles").get();
-      const docs = snap.docs;
-      for (let i = 0; i < docs.length; i += 400) {
-        const batch = fbDb.batch();
-        docs.slice(i, i + 400).forEach(d => batch.set(d.ref, RESET_FIELDS, { merge: true }));
-        await batch.commit();
-      }
-      Object.keys(RESET_FIELDS).forEach(k => Store.set(k, RESET_FIELDS[k]));
-      alert("✅ Records réinitialisés pour " + docs.length + " compte(s).");
-      loadUsers();
-    } catch (err) {
-      alert("❌ Erreur pendant la réinitialisation : " + err.message);
-    } finally {
-      resetAllBtn.disabled = false;
-      resetAllBtn.textContent = originalLabel;
-    }
-  });
 
   async function loadUsers() {
     if (!isAdmin()) return;
