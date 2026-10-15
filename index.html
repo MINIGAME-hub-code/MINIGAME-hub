@@ -962,7 +962,7 @@
       <div class="changelog-entry">
         <div class="changelog-title">Panel Admin : remise à zéro des scores</div>
         <ul class="changelog-list">
-          <li>Nouveau bouton pour réinitialiser tous les scores et records de tous les comptes (Morpion, Snake, Flappy Bird, Cube Rush), avec double confirmation</li>
+          <li>Nouveau bouton pour réinitialiser tous les scores et records de tous les comptes (Morpion, Snake, Flappy Bird, Cube Rush, Chat Clicker avec ses améliorations), avec double confirmation</li>
         </ul>
       </div>
 
@@ -1704,13 +1704,19 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   const resetAllBtn = document.getElementById("admin-reset-all-btn");
   resetAllBtn.addEventListener("click", async () => {
     if (!isAdmin()) return;
-    if (!confirm("Remettre à zéro les scores et records (Morpion, Snake, Flappy Bird, Cube Rush) de TOUS les comptes ?\n\nLa progression du Chat Clicker n'est pas touchée. Cette action est irréversible.")) return;
+    if (!confirm("Remettre à zéro TOUS les scores et records (Morpion, Snake, Flappy Bird, Cube Rush, Chat Clicker) de TOUS les comptes ?\n\nCette action est irréversible.")) return;
     if (!confirm("Dernière confirmation : effacer tous les scores ?")) return;
     const zero = {
       ttt_scores: { X: 0, O: 0, N: 0 },
       snake_best: 0,
       flappy_best: 0,
-      cuberush_bests: { facile: 0, normal: 0, difficile: 0 }
+      cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
+      clicker_total: 0,
+      clicker_count: 0,
+      clicker_bank: 0,
+      clicker_auto_level: 0,
+      clicker_power_level: 0,
+      clicker_megapower_level: 0
     };
     resetAllBtn.disabled = true;
     try {
