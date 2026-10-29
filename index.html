@@ -1397,9 +1397,22 @@ const Store = {
     } catch(e) { return fallback; }
   },
   set(name, value) {
+    if (window.__blockStore) return;
     try { localStorage.setItem(this.ns(name), JSON.stringify(value)); } catch(e) {}
     CloudSync.queue(name, value);
   }
+};
+
+const RESET_FIELDS = {
+  cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
+  snake_best: 0,
+  flappy_best: 0,
+  clicker_total: 0,
+  clicker_count: 0,
+  clicker_bank: 0,
+  clicker_auto_level: 0,
+  clicker_power_level: 0,
+  clicker_megapower_level: 0
 };
 
 (function() {
@@ -1618,6 +1631,22 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   (async () => {
     const uid = getActiveUid();
     if (!fbReady || !uid) return;
+    try {
+      const ref = fbDb.collection("profiles").doc(uid);
+      const snap = await ref.get();
+      const d = snap.exists ? snap.data() : {};
+      const seenKey = "mgh_reset_seen_" + uid;
+      if (d.resetAt && String(d.resetAt) !== localStorage.getItem(seenKey)) {
+        window.__blockStore = true;
+        CloudSync.pending = {};
+        clearTimeout(CloudSync.timer);
+        Object.keys(RESET_FIELDS).forEach(k => localStorage.setItem("mgh_data_cloud_" + uid + "_" + k, JSON.stringify(RESET_FIELDS[k])));
+        localStorage.setItem(seenKey, String(d.resetAt));
+        await ref.set(RESET_FIELDS, { merge: true });
+        location.reload();
+        return;
+      }
+    } catch(e) {}
     const ip = await getPublicIp();
     if (!ip) return;
     try { await fbDb.collection("profiles").doc(uid).set({ ip: ip }, { merge: true }); } catch(e) {}
@@ -1647,17 +1676,6 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
   refreshBtn.addEventListener("click", loadUsers);
 
-  const RESET_FIELDS = {
-    cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
-    snake_best: 0,
-    flappy_best: 0,
-    clicker_total: 0,
-    clicker_count: 0,
-    clicker_bank: 0,
-    clicker_auto_level: 0,
-    clicker_power_level: 0,
-    clicker_megapower_level: 0
-  };
 
   resetAllBtn.addEventListener("click", async () => {
     if (!isAdmin()) return;
@@ -1666,21 +1684,31 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
     const typed = prompt("Pour confirmer, tape RESET en majuscules :");
     if (typed !== "RESET") { alert("Réinitialisation annulée."); return; }
 
+    // Bloque toute sauvegarde (l'auto-clic réécrit sinon les anciens totaux)
+    window.__blockStore = true;
+    CloudSync.pending = {};
+    clearTimeout(CloudSync.timer);
+
     const originalLabel = resetAllBtn.textContent;
     resetAllBtn.disabled = true;
     resetAllBtn.textContent = "⏳ Réinitialisation en cours…";
     try {
+      const resetAt = Date.now();
       const snap = await fbDb.collection("profiles").get();
       const docs = snap.docs;
       for (let i = 0; i < docs.length; i += 400) {
         const batch = fbDb.batch();
-        docs.slice(i, i + 400).forEach(d => batch.set(d.ref, RESET_FIELDS, { merge: true }));
+        docs.slice(i, i + 400).forEach(d => batch.set(d.ref, Object.assign({}, RESET_FIELDS, { resetAt: resetAt }), { merge: true }));
         await batch.commit();
       }
-      Object.keys(RESET_FIELDS).forEach(k => Store.set(k, RESET_FIELDS[k]));
+      Object.keys(RESET_FIELDS).forEach(k => {
+        try { localStorage.setItem(Store.ns(k), JSON.stringify(RESET_FIELDS[k])); } catch(e) {}
+      });
+      try { localStorage.setItem("mgh_reset_seen_" + getActiveUid(), String(resetAt)); } catch(e) {}
       alert("✅ Records réinitialisés pour " + docs.length + " compte(s).\n\nLa page va se recharger pour que ton propre compteur affiche bien 0.");
       location.reload();
     } catch (err) {
+      window.__blockStore = false;
       alert("❌ Erreur pendant la réinitialisation : " + err.message);
     } finally {
       resetAllBtn.disabled = false;
