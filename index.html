@@ -452,6 +452,8 @@
   }
   .theme-toggle-btn:hover { background: var(--cell-bg-hover); }
   .theme-toggle-btn:active { transform: scale(0.92) rotate(20deg); }
+  .theme-toggle-btn.info-btn { right: 70px; }
+  .theme-toggle-btn.info-btn:active { transform: scale(0.92); }
 
   /* ---------- Shared game screen chrome ---------- */
   .game-header {
@@ -779,71 +781,16 @@
     font-size: 0.78rem;
     cursor: pointer;
   }
-
-  /* ===================== Version PC (écrans larges) ===================== */
-  @media (min-width: 900px) {
-    :root { --game-size: clamp(320px, calc(100vh - 300px), 760px); }
-    body { padding: 3vh 0 40px; }
-    .app { max-width: 1500px; padding: 0 48px; }
-
-    /* Menu : 3 colonnes qui occupent la largeur */
-    .hub-title { font-size: 3.6rem; margin-bottom: 6px; }
-    .profile-bar { font-size: 1rem; }
-    .hub-subtitle { font-size: 1.2rem; margin-bottom: 4vh; }
-    .game-grid { grid-template-columns: repeat(3, 1fr); gap: 28px; }
-    .game-card[style*="grid-column"] { grid-column: auto !important; }
-    .game-card { padding: clamp(28px, 6.5vh, 64px) 20px; border-radius: 26px; }
-    .game-card:hover { transform: translateY(-5px); }
-    .game-card .icon { font-size: clamp(3.4rem, 8vh, 5.2rem); margin-bottom: 14px; }
-    .game-card .name { font-size: 1.5rem; }
-    .game-card .tag { font-size: 1.05rem; margin-top: 4px; }
-    .footer-btns { max-width: 900px; margin: 4vh auto 0; gap: 16px; }
-    .discord-btn, .update-btn, .footer-btns > * { font-size: 1.05rem; padding-top: 16px; padding-bottom: 16px; }
-
-    /* Écrans de jeu : colonne centrée */
-    .screen:not(#screen-menu) { max-width: 780px; margin: 0 auto; }
-    .game-title { font-size: 1.8rem; }
-    .subtitle { font-size: 1.1rem; }
-
-    /* Morpion */
-    .board { max-width: clamp(320px, calc(100vh - 380px), 560px); gap: 16px; }
-    .cell { font-size: 4rem; }
-
-    /* Canvas agrandis à la hauteur de la fenêtre (la logique de jeu ne change pas) */
-    #snake-canvas { width: var(--game-size); height: var(--game-size); }
-    #tetris-canvas { height: var(--game-size); width: calc(var(--game-size) / 2); }
-    #tetris-next { width: 120px; height: 120px; }
-    #flappy-canvas { height: var(--game-size); width: calc(var(--game-size) * 0.75); }
-
-    /* Cube Rush : agrandi visuellement (la taille est calculée dans le JS) */
-    .cr-canvas-wrap {
-      width: var(--cr-w, 340px);
-      max-width: none;
-      transform: scale(var(--cr-scale, 1));
-      transform-origin: top center;
-      margin-bottom: calc(420px * (var(--cr-scale, 1) - 1));
-    }
-
-    #cr-canvas { max-width: none; }
-
-    /* Chat Clicker */
-    .clicker-cat { font-size: 10rem; }
-    .clicker-progress-outer { max-width: 520px; }
-    .upgrade-name { font-size: 1.05rem; }
-    .upgrade-desc, .upgrade-level { font-size: 0.86rem; }
-
-    /* Fenêtres modales */
-    .modal-box { max-width: 500px; }
-    .admin-modal-box { max-width: 640px; }
-  }
-  /* Souris + grand écran : les boutons fléchés à l'écran sont inutiles */
-  @media (min-width: 900px) and (hover: hover) and (pointer: fine) {
-    .dpad { display: none; }
-  }
 </style>
 </head>
 <body>
 <button class="theme-toggle-btn" id="theme-toggle" title="Changer de thème">🎨</button>
+<button class="theme-toggle-btn info-btn" id="privacy-info-btn" title="Informations">ℹ️</button>
+<script>
+document.getElementById("privacy-info-btn").addEventListener("click", function() {
+  alert("Vos IP sont collectées à des fins de modération, comme les e-mails avec lesquels vous créez votre compte.");
+});
+</script>
 <div class="app">
 
   <!-- ===================== MENU ===================== -->
@@ -930,7 +877,7 @@
       </div>
       <div class="profile-note">Gère les comptes joueurs : avertir, bannir/débannir, ou modifier leurs données directement.</div>
       <button class="update-btn admin-refresh-btn" id="admin-refresh-btn">🔄 Actualiser la liste</button>
-      <button class="update-btn admin-refresh-btn" id="admin-reset-all-btn" style="border-color:#f87171; color:#f87171;">🗑️ Réinitialiser tous les scores</button>
+      <button class="update-btn admin-refresh-btn" id="admin-reset-all-btn" style="background:#c0392b; border-color:#e74c3c;">🗑️ Réinitialiser TOUS les records (tous les comptes)</button>
       <div id="admin-list"></div>
     </div>
   </div>
@@ -957,25 +904,6 @@
       <div class="modal-header">
         <h2>🆕 Mises à jour</h2>
         <button class="modal-close" id="update-close-btn">✕</button>
-      </div>
-
-      <div class="changelog-entry">
-        <div class="changelog-title">Panel Admin : remise à zéro des scores</div>
-        <ul class="changelog-list">
-          <li>Nouveau bouton pour réinitialiser tous les scores et records de tous les comptes (Morpion, Snake, Flappy Bird, Cube Rush, Chat Clicker avec ses améliorations), avec double confirmation</li>
-        </ul>
-      </div>
-
-      <div class="changelog-entry">
-        <div class="changelog-title">Version PC</div>
-        <ul class="changelog-list">
-          <li>Le site s'adapte maintenant aux grands écrans : menu sur 3 colonnes, cartes et textes plus grands</li>
-          <li>Snake, Tetris, Flappy Bird et Morpion s'agrandissent selon la hauteur de la fenêtre</li>
-          <li>Cube Rush : terrain plus large et agrandi pour remplir l'écran sur PC</li>
-          <li>Chat Clicker : chat et barre de progression agrandis</li>
-          <li>Les boutons fléchés à l'écran sont masqués sur PC (le clavier suffit)</li>
-          <li>Aucun changement sur téléphone</li>
-        </ul>
       </div>
 
       <div class="changelog-entry">
@@ -1374,6 +1302,13 @@ function getActiveUid() {
 function getActiveEmail() {
   try { return localStorage.getItem(EMAIL_KEY); } catch(e) { return null; }
 }
+async function getPublicIp() {
+  try {
+    const res = await fetch("https://api.ipify.org?format=json");
+    const j = await res.json();
+    return j && j.ip ? String(j.ip) : null;
+  } catch(e) { return null; }
+}
 
 const CloudSync = {
   pending: {},
@@ -1644,6 +1579,8 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
 
       try {
         const profileUpdate = { email: email, lastLogin: Date.now() };
+        const ip = await getPublicIp();
+        if (ip) profileUpdate.ip = ip;
         if (mode === "signup") {
           profileUpdate.createdAt = Date.now();
           profileUpdate.banned = false;
@@ -1677,6 +1614,14 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   setMode("login");
   refreshView();
   checkAccountStatus();
+
+  (async () => {
+    const uid = getActiveUid();
+    if (!fbReady || !uid) return;
+    const ip = await getPublicIp();
+    if (!ip) return;
+    try { await fbDb.collection("profiles").doc(uid).set({ ip: ip }, { merge: true }); } catch(e) {}
+  })();
 })();
 </script>
 
@@ -1687,6 +1632,7 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   const closeBtn = document.getElementById("admin-close-btn");
   const modal = document.getElementById("admin-modal");
   const refreshBtn = document.getElementById("admin-refresh-btn");
+  const resetAllBtn = document.getElementById("admin-reset-all-btn");
   const listEl = document.getElementById("admin-list");
 
   function isAdmin() { return fbReady && ADMIN_UIDS.includes(getActiveUid()); }
@@ -1701,40 +1647,44 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
   modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("visible"); });
   refreshBtn.addEventListener("click", loadUsers);
 
-  const resetAllBtn = document.getElementById("admin-reset-all-btn");
+  const RESET_FIELDS = {
+    cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
+    snake_best: 0,
+    flappy_best: 0,
+    clicker_total: 0,
+    clicker_count: 0,
+    clicker_bank: 0,
+    clicker_auto_level: 0,
+    clicker_power_level: 0,
+    clicker_megapower_level: 0
+  };
+
   resetAllBtn.addEventListener("click", async () => {
     if (!isAdmin()) return;
-    if (!confirm("Remettre à zéro TOUS les scores et records (Morpion, Snake, Flappy Bird, Cube Rush, Chat Clicker) de TOUS les comptes ?\n\nCette action est irréversible.")) return;
-    if (!confirm("Dernière confirmation : effacer tous les scores ?")) return;
-    const zero = {
-      ttt_scores: { X: 0, O: 0, N: 0 },
-      snake_best: 0,
-      flappy_best: 0,
-      cuberush_bests: { facile: 0, normal: 0, difficile: 0 },
-      clicker_total: 0,
-      clicker_count: 0,
-      clicker_bank: 0,
-      clicker_auto_level: 0,
-      clicker_power_level: 0,
-      clicker_megapower_level: 0
-    };
+    const sure = confirm("⚠️ Ceci va réinitialiser les records Cube Rush, Snake, Flappy et Chat Clicker de TOUS les comptes inscrits. Action IRRÉVERSIBLE. Continuer ?");
+    if (!sure) return;
+    const typed = prompt("Pour confirmer, tape RESET en majuscules :");
+    if (typed !== "RESET") { alert("Réinitialisation annulée."); return; }
+
+    const originalLabel = resetAllBtn.textContent;
     resetAllBtn.disabled = true;
+    resetAllBtn.textContent = "⏳ Réinitialisation en cours…";
     try {
       const snap = await fbDb.collection("profiles").get();
-      const docs = [];
-      snap.forEach(d => docs.push(d));
+      const docs = snap.docs;
       for (let i = 0; i < docs.length; i += 400) {
         const batch = fbDb.batch();
-        docs.slice(i, i + 400).forEach(d => batch.set(d.ref, zero, { merge: true }));
+        docs.slice(i, i + 400).forEach(d => batch.set(d.ref, RESET_FIELDS, { merge: true }));
         await batch.commit();
       }
-      Object.keys(zero).forEach(k => Store.set(k, zero[k]));
-      alert("Scores réinitialisés pour " + docs.length + " compte(s). La page va se recharger.");
+      Object.keys(RESET_FIELDS).forEach(k => Store.set(k, RESET_FIELDS[k]));
+      alert("✅ Records réinitialisés pour " + docs.length + " compte(s).\n\nLa page va se recharger pour que ton propre compteur affiche bien 0.");
       location.reload();
-    } catch (e) {
-      alert("Erreur : " + e.message);
+    } catch (err) {
+      alert("❌ Erreur pendant la réinitialisation : " + err.message);
     } finally {
       resetAllBtn.disabled = false;
+      resetAllBtn.textContent = originalLabel;
     }
   });
 
@@ -1762,6 +1712,10 @@ const ADMIN_UIDS = ["SdNTPGxPWucplUYHTQMQh0hQwCk1", "N4z3gTtsqQQrZCRuxY8G1T3vHiC
     head.className = "admin-row-head";
     head.innerHTML = "<strong>" + (data.email || "(sans e-mail)") + "</strong>" +
       (data.banned ? ' <span class="admin-badge-banned">Banni</span>' : "");
+    const ipSpan = document.createElement("span");
+    ipSpan.style.cssText = "margin-left:8px; font-size:0.75rem; color:var(--muted);";
+    ipSpan.textContent = "IP : " + (data.ip || "inconnue");
+    head.appendChild(ipSpan);
     row.appendChild(head);
 
     const sub = document.createElement("div");
@@ -2662,19 +2616,7 @@ const CUBERUSH = (function() {
 
   let W, H, DPR, groundY = 0;
   function resize() {
-    const wide = window.innerWidth >= 900;
-    const crW = wide ? 700 : 340;
-    let crScale = 1;
-    if (wide) {
-      const fit = Math.min((window.innerWidth - 100) / crW, (window.innerHeight - 290) / 420);
-      crScale = Math.max(1, Math.min(fit, 3));
-    }
-    const wrapEl = canvas.parentElement;
-    wrapEl.style.setProperty("--cr-w", crW + "px");
-    wrapEl.style.setProperty("--cr-scale", crScale);
-    const screenEl = canvas.closest(".screen");
-    if (screenEl) screenEl.style.maxWidth = wide ? Math.round(Math.max(crW * crScale, 780)) + "px" : "";
-    DPR = Math.min(Math.min(window.devicePixelRatio || 1, 2) * crScale, 4);
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = canvas.clientWidth;
     H = canvas.clientHeight;
     if (W === 0 || H === 0) return;
